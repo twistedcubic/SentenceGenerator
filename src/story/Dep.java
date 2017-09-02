@@ -12,6 +12,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 import story.Pos.PosType;
+import story.Story.PosParentChildType;
 
 /**
  * Possible parent-child relation between parent
@@ -138,23 +139,28 @@ public class Dep {
 							&& (childType=Pos.PosType.getTypeFromName(child)) != PosType.NONE) {
 						
 						prob = Integer.parseInt(m.group(3));
-						parentChildMMap.put(parentType, new PosProbPair(childType, prob));
-						childParentMMap.put(childType, new PosProbPair(parentType, prob));
 						
+						int parentTotalSoFar;
+						int childTotalSoFar;
 						Integer parentTotal = parentChildTotalProbMap.get(parentType);
 						if(null != parentTotal) {
-							parentChildTotalProbMap.put(parentType, parentTotal+prob);
+							parentTotalSoFar = parentTotal + prob;							
 						}else {
-							parentChildTotalProbMap.put(parentType, prob);
+							parentTotalSoFar = prob;
 						}
+						parentChildTotalProbMap.put(parentType, parentTotalSoFar);
 						
 						Integer childTotal = childParentTotalProbMap.get(childType);
 						if(null != childTotal) {
-							childParentTotalProbMap.put(childType, parentTotal+prob);
+							childTotalSoFar = parentTotal+prob;
 						}else {
-							childParentTotalProbMap.put(childType, prob);
+							childTotalSoFar = prob;							
 						}
+						childParentTotalProbMap.put(childType, childTotalSoFar);
 						
+						//the prob in input dataStrings are already sorted.
+						parentChildMMap.put(parentType, new PosProbPair(childType, childTotalSoFar));
+						childParentMMap.put(childType, new PosProbPair(parentType, parentTotalSoFar));						
 					}
 					
 				}
@@ -163,38 +169,55 @@ public class Dep {
 		}
 		
 		/**
-		 * Obtain a Dep based on prob maps for given posType.
+		 * Obtain a target PosType based on prob maps for given posType.
 		 * @param posType
 		 * @param posParentChildType
 		 * @return
 		 */
-		public Dep selectRandomMatchingPos(PosType posType, PosParentChildType posParentChildType) {
+		public PosType selectRandomMatchingPos(PosType posType, PosParentChildType posParentChildType) {
 			//get the range over all possible pos value 
 			ListMultimap<PosType, PosProbPair> mMap 
 				= posParentChildType == PosParentChildType.PARENT ? parentChildMMap : childParentMMap;
 			Map<PosType, Integer> totalProbMap 
 				= posParentChildType == PosParentChildType.PARENT ? parentChildTotalProbMap : childParentTotalProbMap;
 			
-			List<PosProbPair> posProbPairList = mMap.get(posType);			
+			List<PosProbPair> posProbPairList = mMap.get(posType);	
+			if(posProbPairList.isEmpty()){
+				return PosType.NONE;
+			}
+			
 			int totalProb = totalProbMap.get(posType);
 			
 			int randInt = RAND_GEN.nextInt(totalProb);
 			
-			//use binary search to find the right interval
-			//make sure map sorted
+			//use binary search to find the right interval,
+			//map already sorted according to 
 			
+			int targetIndex = selectRandomMatchingPosSearch(randInt, 0, posProbPairList.size()-1, posProbPairList);
+			return posProbPairList.get(targetIndex).posType;
 			
 		}
 		
+		private int selectRandomMatchingPosSearch(int targetProb, int lowerIndex, int upperIndex,
+				List<PosProbPair> posProbPairList){
+			
+			if(lowerIndex + 1 == upperIndex){
+				return upperIndex;
+			}
+			int midIndex = (lowerIndex + upperIndex)/2;
+			int midIndexProb = posProbPairList.get(midIndex).prob;
+			if(targetProb > midIndexProb){
+				return selectRandomMatchingPosSearch(targetProb, midIndex, upperIndex, posProbPairList);
+			}else if(targetProb < midIndexProb){
+				return selectRandomMatchingPosSearch(targetProb, lowerIndex, midIndex, posProbPairList);
+			}else{
+				//since prob starts at 0, so 50% prob occupy 0 through 49 (say).
+				return upperIndex;
+			}
+		}		
+		
 	}/*end of DepType enum*/
 	
-	/**
-	 * Used to identify whether supplied Pos is parent or 
-	 * child in a Dep.
-	 */
-	public static enum PosParentChildType{
-		PARENT, CHILD;
-	}
 	
 	/**
 	 * Pos and probability pair, used as value in 
