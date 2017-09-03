@@ -12,7 +12,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 import story.Pos.PosType;
-import story.Story.PosParentChildType;
+import story.Story.PosPCType;
 
 /**
  * Possible parent-child relation between parent
@@ -44,12 +44,24 @@ public class Dep {
 		
 	}
 	
-	public Dep(Pos parentPos_, Pos childPos_, DepType depType_) {
-		this.parentPos = parentPos_;
-		this.childPos = childPos_;
-		this.depType = depType_;
+	public Dep(DepType depType_, Pos pos_, PosPCType parentChildType) {
+		
+		if(parentChildType == PosPCType.PARENT) {
+			this.parentPos = pos_;
+		}else {
+			this.childPos = pos_;
+			this.depType = depType_;			
+		}
+		this.depType = depType_;	
 	}
 	
+	public Dep(DepType depType_, Pos parentPos_, Pos childPos_) {
+		
+		this.parentPos = parentPos_;
+		this.childPos = childPos_;
+		this.depType = depType_;	
+	}
+
 	/**
 	 * A label for a relation, e.g. NSUBJ,
 	 * along with probability maps for possible
@@ -59,6 +71,9 @@ public class Dep {
 		
 		NSUBJ(depTypeDataMap.get("nsubj"), 2, 1),
 		NONE("", 0, 0);
+		
+		//18641 instances of case (96%) are right-to-left (child precedes parent). Average distance between parent and child is 2.0255896408201.
+		//used to determine ordering and relation
 		
 		//<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances).
 		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
@@ -174,12 +189,12 @@ public class Dep {
 		 * @param posParentChildType
 		 * @return
 		 */
-		public PosType selectRandomMatchingPos(PosType posType, PosParentChildType posParentChildType) {
+		public PosType selectRandomMatchingPos(PosType posType, PosPCType posParentChildType) {
 			//get the range over all possible pos value 
 			ListMultimap<PosType, PosProbPair> mMap 
-				= posParentChildType == PosParentChildType.PARENT ? parentChildMMap : childParentMMap;
+				= posParentChildType == PosPCType.PARENT ? parentChildMMap : childParentMMap;
 			Map<PosType, Integer> totalProbMap 
-				= posParentChildType == PosParentChildType.PARENT ? parentChildTotalProbMap : childParentTotalProbMap;
+				= posParentChildType == PosPCType.PARENT ? parentChildTotalProbMap : childParentTotalProbMap;
 			
 			List<PosProbPair> posProbPairList = mMap.get(posType);	
 			if(posProbPairList.isEmpty()){
@@ -187,8 +202,8 @@ public class Dep {
 			}
 			
 			int totalProb = totalProbMap.get(posType);
-			
-			int randInt = RAND_GEN.nextInt(totalProb);
+			//+1 since nextInt excludes last number. make into constant.
+			int randInt = RAND_GEN.nextInt(totalProb)+1;
 			
 			//use binary search to find the right interval,
 			//map already sorted according to 
