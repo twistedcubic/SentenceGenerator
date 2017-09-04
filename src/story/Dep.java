@@ -12,6 +12,7 @@ import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 
 import story.Pos.PosType;
+import story.Pos.PosType.PosTypeName;
 import story.Story.PosPCType;
 
 /**
@@ -70,10 +71,13 @@ public class Dep {
 	public static enum DepType{
 		
 		NSUBJ(depTypeDataMap.get("nsubj"), 2, 1),
+		ROOT(depTypeDataMap.get("root"), 2, 1),
 		NONE("", 0, 0);
 		
-		//18641 instances of case (96%) are right-to-left (child precedes parent). Average distance between parent and child is 2.0255896408201.
-		//used to determine ordering and relation
+		//18641 instances of case (96%) are right-to-left (child precedes parent). 
+		//Average distance between parent and child is 2.0255896408201.
+		//used to determine ordering and relation.
+		
 		
 		//<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances).
 		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
@@ -83,14 +87,14 @@ public class Dep {
 		
 		//probability map for parent-child relations
 		//where parent pos are keys.
-		private ListMultimap<PosType, PosProbPair> parentChildMMap;
+		private ListMultimap<PosTypeName, PosProbPair> parentChildMMap;
 		//probability map for parent-child relations
 		//where child pos are keys.
-		private ListMultimap<PosType, PosProbPair> childParentMMap;
-		private Map<PosType, Integer> parentChildTotalProbMap;
+		private ListMultimap<PosTypeName, PosProbPair> childParentMMap;
+		private Map<PosTypeName, Integer> parentChildTotalProbMap;
 		//probability map for parent-child relations
 		//where child pos are keys.
-		private Map<PosType, Integer> childParentTotalProbMap;
+		private Map<PosTypeName, Integer> childParentTotalProbMap;
 		
 		//avg dist between parent and child 
 		private double parentChildDist;
@@ -107,8 +111,8 @@ public class Dep {
 			parentChildMMap = ArrayListMultimap.create();
 			childParentMMap = ArrayListMultimap.create();
 			
-			parentChildTotalProbMap = new HashMap<PosType, Integer>();
-			childParentTotalProbMap = new HashMap<PosType, Integer>();;
+			parentChildTotalProbMap = new HashMap<PosTypeName, Integer>();
+			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();;
 			createDepMMaps(dataString, parentChildMMap, childParentMMap,
 					parentChildTotalProbMap, childParentTotalProbMap);
 			
@@ -120,6 +124,8 @@ public class Dep {
 			switch(depTypeName) {
 			case "nsubj":
 				return NSUBJ;
+			case "root":
+				return ROOT;
 			default:
 				//better default!?
 				return NONE;
@@ -133,9 +139,9 @@ public class Dep {
 		 * @param parentChildMMap
 		 * @param childParentMMap
 		 */
-		private void createDepMMaps(String dataString, Multimap<PosType, PosProbPair> parentChildMMap, 
-				Multimap<PosType, PosProbPair> childParentMMap, Map<PosType, Integer> parentChildTotalProbMap, 
-				Map<PosType, Integer> childParentTotalProbMap) {
+		private void createDepMMaps(String dataString, Multimap<PosTypeName, PosProbPair> parentChildMMap, 
+				Multimap<PosTypeName, PosProbPair> childParentMMap, Map<PosTypeName, Integer> parentChildTotalProbMap, 
+				Map<PosTypeName, Integer> childParentTotalProbMap) {
 			//separate by comma 
 			String[] dataStringAr = COMMA_SEP_PATTERN.split(dataString);
 			String parent;
@@ -148,34 +154,34 @@ public class Dep {
 					parent = m.group(1);
 					child = m.group(2);
 					
-					PosType parentType;
-					PosType childType;
-					if((parentType=Pos.PosType.getTypeFromName(parent)) != PosType.NONE 
-							&& (childType=Pos.PosType.getTypeFromName(child)) != PosType.NONE) {
+					PosTypeName parentTypeName;
+					PosTypeName childTypeName;
+					if((parentTypeName=PosTypeName.getTypeFromName(parent)) != PosTypeName.NONE 
+							&& (childTypeName=PosTypeName.getTypeFromName(child)) != PosTypeName.NONE) {
 						
 						prob = Integer.parseInt(m.group(3));
 						
 						int parentTotalSoFar;
 						int childTotalSoFar;
-						Integer parentTotal = parentChildTotalProbMap.get(parentType);
+						Integer parentTotal = parentChildTotalProbMap.get(parentTypeName);
 						if(null != parentTotal) {
 							parentTotalSoFar = parentTotal + prob;							
 						}else {
 							parentTotalSoFar = prob;
 						}
-						parentChildTotalProbMap.put(parentType, parentTotalSoFar);
+						parentChildTotalProbMap.put(parentTypeName, parentTotalSoFar);
 						
-						Integer childTotal = childParentTotalProbMap.get(childType);
+						Integer childTotal = childParentTotalProbMap.get(childTypeName);
 						if(null != childTotal) {
 							childTotalSoFar = parentTotal+prob;
 						}else {
 							childTotalSoFar = prob;							
 						}
-						childParentTotalProbMap.put(childType, childTotalSoFar);
+						childParentTotalProbMap.put(childTypeName, childTotalSoFar);
 						
 						//the prob in input dataStrings are already sorted.
-						parentChildMMap.put(parentType, new PosProbPair(childType, childTotalSoFar));
-						childParentMMap.put(childType, new PosProbPair(parentType, parentTotalSoFar));						
+						parentChildMMap.put(parentTypeName, new PosProbPair(childTypeName, childTotalSoFar));
+						childParentMMap.put(childTypeName, new PosProbPair(parentTypeName, parentTotalSoFar));						
 					}
 					
 				}
@@ -190,18 +196,19 @@ public class Dep {
 		 * @return
 		 */
 		public PosType selectRandomMatchingPos(PosType posType, PosPCType posParentChildType) {
+			
 			//get the range over all possible pos value 
-			ListMultimap<PosType, PosProbPair> mMap 
+			ListMultimap<PosTypeName, PosProbPair> mMap 
 				= posParentChildType == PosPCType.PARENT ? parentChildMMap : childParentMMap;
-			Map<PosType, Integer> totalProbMap 
+			Map<PosTypeName, Integer> totalProbMap 
 				= posParentChildType == PosPCType.PARENT ? parentChildTotalProbMap : childParentTotalProbMap;
 			
-			List<PosProbPair> posProbPairList = mMap.get(posType);	
+			List<PosProbPair> posProbPairList = mMap.get(posType.posTypeName());
 			if(posProbPairList.isEmpty()){
 				return PosType.NONE;
 			}
 			
-			int totalProb = totalProbMap.get(posType);
+			int totalProb = totalProbMap.get(posType.posTypeName());
 			//+1 since nextInt excludes last number. make into constant.
 			int randInt = RAND_GEN.nextInt(totalProb)+1;
 			
@@ -209,7 +216,7 @@ public class Dep {
 			//map already sorted according to 
 			
 			int targetIndex = selectRandomMatchingPosSearch(randInt, 0, posProbPairList.size()-1, posProbPairList);
-			return posProbPairList.get(targetIndex).posType;
+			return posProbPairList.get(targetIndex).posTypeName.getPosType();
 			
 		}
 		
@@ -233,7 +240,14 @@ public class Dep {
 		
 	}/*end of DepType enum*/
 	
-	
+	public Pos parentPos() {
+		return parentPos;
+	}
+
+	public Pos childPos() {
+		return childPos;
+	}
+
 	/**
 	 * Pos and probability pair, used as value in 
 	 * childParentMap or parentChildMap.
@@ -241,12 +255,12 @@ public class Dep {
 	private static class PosProbPair{
 		//the pos in the value of the map, could be parent
 		//or child.
-		PosType posType;
+		PosTypeName posTypeName;
 		//probability as a number between 0 and 100.
 		int prob;
 		
-		PosProbPair(PosType posType_, int prob_){
-			this.posType = posType_;
+		PosProbPair(PosTypeName posTypeN_, int prob_){
+			this.posTypeName = posTypeN_;
 			this.prob = prob_;
 		}
 		

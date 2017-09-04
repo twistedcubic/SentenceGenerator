@@ -28,17 +28,23 @@ public class Pos {
 	private static final Map<String, String> parentPosTypeDataMap;
 	private static final Map<String, String> childPosTypeDataMap;
 	private static final Random RAND_GEN = new Random();
+	private static final int TOTAL_PROB = 100;
 	
 	private PosType posType;
 	
 	//relation to parent for this Pos instance
 	private Dep parentDep;
-	//relation to children
+	/**relation to children*/
 	private List<Dep> childDepList = new ArrayList<Dep>();
 	
 	/**distance to originator Pos (not necessarily root)
 	 used for determining whether to expand tree further. */
 	private int distToOrigin;
+	/**the word selected for this pos. E.g. "I" for PRON*/
+	private String posWord;
+	
+	/**phrase created from subtree*/
+	private String subTreePhrase;
 	
 	static {
 		//construct depTypeDataMap by reading data from file
@@ -65,8 +71,42 @@ public class Pos {
 	 * parent-child relations (Dep's).
 	 */
 	public static enum PosType{
-		VERB(parentPosTypeDataMap.get("verb") , childPosTypeDataMap.get("verb")), 
+		VERB(parentPosTypeDataMap.get("VERB") , childPosTypeDataMap.get("verb")), 
 		NONE("", "");
+		
+		/**
+		 * Name strings for this PosType.
+		 */
+		public static enum PosTypeName{
+			VERB("VERB"),
+			NONE("");
+			
+			private String nameStr;
+			
+			private PosTypeName(String name) {
+				this.nameStr = name;
+			}
+
+			public PosType getPosType() {
+				switch(this) {
+				case VERB:
+					return PosType.VERB;
+				default:
+					//better default!?
+					return PosType.NONE;
+				}
+			}
+			
+			public static PosTypeName getTypeFromName(String posTypeName) {
+				switch(posTypeName) {
+				case "VERB":
+					return VERB;
+				default:
+					//better default!?
+					return NONE;
+				}
+			}
+		}/*end of PosTypeName enum*/
 		
 		
 		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
@@ -81,6 +121,8 @@ public class Pos {
 		
 		private int parentTotalProb;
 		private int childTotalProb;
+		/** probability (as percentage) for this pos being root, between 0 and 100.*/
+		private int isRootProb;
 		
 		private PosType(String parentDataString, String childDataString) {
 			parentDepTypeMap = new HashMap<DepType, Integer>();
@@ -97,7 +139,7 @@ public class Pos {
 		 * @param parentDepTypeMap
 		 * @param childDepTypeMap
 		 */
-		private static int createMap(String dataString, Map<DepType, Integer> depTypeMap,
+		private int createMap(String dataString, Map<DepType, Integer> depTypeMap,
 				List<DepTypeProbPair> depTypePairList) {
 			
 			if(null == dataString) {
@@ -112,10 +154,15 @@ public class Pos {
 			
 			for(String s : dataAr) {
 				if((m=DEP_PATTERN.matcher(s)).matches()) {
+					//e.g. "nsubj", or "root"
 					depTypeStr = m.group(1);
 					
 					if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
 						prob = Integer.parseInt(m.group(2));
+					
+						if("root".equals(depTypeStr)) {
+							this.isRootProb = prob;
+						}
 						//some data have 0 prob because low occurrence.
 						prob = prob > 0 ? prob : 1;
 						totalProb += prob;
@@ -125,18 +172,8 @@ public class Pos {
 				}
 			}			
 			return totalProb;
-		}
+		}		
 		
-		public static PosType getTypeFromName(String posTypeName) {
-			switch(posTypeName) {
-			case "VERB":
-				return VERB;
-			default:
-				//better default!?
-				return NONE;
-			}
-		}
-				
 		/**
 		 * Obtain a target DepType based on prob maps for given posType, get either parent or child
 		 * type.
@@ -144,8 +181,9 @@ public class Pos {
 		 * @param posParentChildType Whether posType should be taken as parent or child.
 		 * @return
 		 */
-		public static List<DepType> selectRandomDepType(PosType posType, PosPCType posParentChildType) {
+		public static List<DepType> selectRandomDepType(Pos pos, PosPCType posParentChildType) {
 			
+			PosType posType = pos.posType;
 			int totalProb = posParentChildType == PosPCType.PARENT ? posType.childTotalProb : posType.parentTotalProb;
 			//get the range over all possible pos value Map<DepType, Integer> parentDepTypeMap
 			List<DepTypeProbPair> depTypeList = posParentChildType == PosPCType.PARENT ? posType.parentDepTypePairList
@@ -160,9 +198,11 @@ public class Pos {
 			}else {
 				int randInt = RAND_GEN.nextInt(100)+1;
 				//generate based on stats
-				SearchableList<Integer> pcProbList = Story.posTypePCProbMap().get(posType);
+				SearchableList<Integer> pcProbList = Story.posTypePCProbMap().get(posType.posTypeName());
 				int index = pcProbList.listBinarySearch(randInt);
 				numDepType = pcProbList.getTargetElem(index);
+				//count number of existing children
+				numDepType = numDepType - pos.childDepList.size();
 			}
 			
 			for(int i = 0; i < numDepType; i++) {
@@ -197,6 +237,15 @@ public class Pos {
 			
 		}
 		
+		public PosTypeName posTypeName() {
+			switch(this) {
+			case VERB:
+				return PosTypeName.VERB;
+			default:
+				return PosTypeName.NONE;
+			}
+		}
+		
 	}/*End of PosType enum*/
 	
 	public static class DepTypeProbPair {
@@ -208,30 +257,35 @@ public class Pos {
 			this.prob = prob_;
 		}
 	}/**/
-	
-	
+		
 	/**
 	 * create sentence tree given a PosType
 	 * @param posType
 	 */
-	public static void createSentenceTree(PosType posType) {
+	public static Pos createSentenceTree(PosType posType) {
 
 		//create a pos with that Type
-		Pos pos = new Pos(posType);
-		
-		growTree(pos);		
-		
+		Pos pos = new Pos(posType);		
+		growTree(pos);
+		return pos;
 	}
 
+	/**
+	 * Attach additional Dep and Pos to given Pos.
+	 * @param pos
+	 */
 	private static void growTree(Pos pos) {
 		
 		PosType posType = pos.posType;
+		pos.posWord = Story.getRandomWord(posType);
 		//not mutually exclusive!
-		PosPCType parentChildType = PosPCType.generateRandType();
+		//PosPCType parentChildType = PosPCType.generateRandType();
+		
+		boolean getParentBool = whetherCreateParent(pos);
 		//use prob to determine if get parent.
-		if(null == pos.parentDep && get_parent ) {
+		if(getParentBool) {
 			//create Dep with randomly generated DepType
-			List<DepType> depTypeList = PosType.selectRandomDepType(posType, PosPCType.CHILD);
+			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.CHILD);
 			
 			if(!depTypeList.isEmpty()) {
 				
@@ -250,7 +304,8 @@ public class Pos {
 				///*else {
 					parentPos = new Pos(matchingPosType);			
 					childPos = pos;	
-					parentPos.distToOrigin = 1;
+					parentPos.distToOrigin = pos.distToOrigin + 1;
+					parentPos.posWord = Story.getRandomWord(matchingPosType);
 				//}	*/
 				
 				Dep dep = new Dep(depType, parentPos, childPos);
@@ -260,16 +315,14 @@ public class Pos {
 				
 				//grow children
 				growTree(parentPos);
-			}
-			
+			}			
 		}
 		
+		boolean getChildBool = whetherCreateChild(pos);
 		//get_child takes into account e.g. how far from Pos originator. how many children already, etc
-		if( get_child ) {
+		if(getChildBool) {
 			//create Dep with randomly generated DepType
-			List<DepType> depTypeList = PosType.selectRandomDepType(posType, PosPCType.PARENT);
-			
-			//get avg number of children nodes!!
+			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.PARENT);
 			
 			for(DepType depType : depTypeList) {
 				//this is for child
@@ -281,7 +334,9 @@ public class Pos {
 				//if(parentChildType == PosPCType.PARENT) {
 					parentPos = pos;
 					childPos = new Pos(matchingPosType);
-					childPos.distToOrigin = 1;
+					childPos.distToOrigin = pos.distToOrigin + 1;
+					
+					childPos.posWord = Story.getRandomWord(matchingPosType);
 				/*}/*else {
 					parentPos = new Pos(matchingPosType);			
 					childPos = pos;	
@@ -292,12 +347,111 @@ public class Pos {
 				childPos.addDep(dep, PosPCType.CHILD);
 				parentPos.addDep(dep, PosPCType.PARENT);
 				
+				
 				//grow children
 				growTree(childPos);
 				
 			}
 		}
 	}
+
+	/**
+	 * Determines if create parent based on pos being root, 
+	 * and dist from originator.
+	 * @param pos
+	 * @return
+	 */
+	private static boolean whetherCreateParent(Pos pos) {
+		
+		if(null != pos.parentDep) {
+			return false;
+		}
+		//threshold dist to origin
+		final int PARENT_DIST_THRESHOLD = 2;
+		if(pos.distToOrigin >= PARENT_DIST_THRESHOLD) {
+			return false;
+		}
+		
+		int rootProb = pos.posType.isRootProb;
+		int randInt = RAND_GEN.nextInt(TOTAL_PROB)+1;
+		
+		if(randInt < rootProb) {
+			return false;
+		}else {
+			return true;			
+		}
+	}
 	
+	/**
+	 * Determines if create parent based on pos being root.
+	 * @param pos
+	 * @return
+	 */
+	private static boolean whetherCreateChild(Pos pos) {
+		
+		int numChildren = pos.childDepList.size();
+		
+		final int NUM_CHILDREN_THRESHOLD = 3;
+		if(numChildren > NUM_CHILDREN_THRESHOLD) {
+			return false;
+		}		
+		//threshold dist to origin
+		final int CHILD_DIST_THRESHOLD = 2;
+		if(pos.distToOrigin >= CHILD_DIST_THRESHOLD) {
+			return false;
+		}
+		return true;
+	}
 	
+	/**
+	 * Creates phrase for subtree.
+	 * @return
+	 */
+	private String createSubTreePhrase() {
+		if(null != this.subTreePhrase) {
+			return this.subTreePhrase;
+		}
+		
+		if(this.childDepList.isEmpty()) {
+			//leaf Pos
+			return this.posWord;
+		}
+		
+		//arrange based on dep avg dist and left-right ordering.
+		//Do insertion sort, since list size <= 3, which means
+		//each side has on average 1.5 elements.
+		List<Dep> leftDepList = new ArrayList<Dep>();
+		List<Dep> rightDepList = new ArrayList<Dep>();
+		
+		for(Dep dep : this.childDepList) {
+			
+			
+		}
+		
+	}
+	
+	/**
+	 * Create sentence string from pos tree, the sentence arranged
+	 * based on avg distances in a Dep and left-right ordering.
+	 * @param originPos
+	 * @return
+	 */
+	public static String arrangePosStr(Pos originPos) {
+		
+		Pos curPos = originPos;
+		
+		while(null != curPos) {
+			
+			curPos.createSubTreePhrase();
+			Dep parentDep = curPos.parentDep;
+			//get the parent
+			curPos = parentDep.parentPos();
+		}
+		
+		return originPos.subTreePhrase;
+	}
+	
+	public PosType posType() {
+		return this.posType;
+	}
 }
