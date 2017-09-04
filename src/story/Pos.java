@@ -1,6 +1,8 @@
 package story;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -418,15 +420,44 @@ public class Pos {
 		}
 		
 		//arrange based on dep avg dist and left-right ordering.
-		//Do insertion sort, since list size <= 3, which means
-		//each side has on average 1.5 elements.
-		List<Dep> leftDepList = new ArrayList<Dep>();
-		List<Dep> rightDepList = new ArrayList<Dep>();
+		List<String> leftDepList = new ArrayList<String>();
+		List<String> rightDepList = new ArrayList<String>();
 		
+		Collections.sort(this.childDepList, 
+				new Comparator<Dep>(){
+					public int compare(Dep dep1, Dep dep2){
+						double dep1Dist = dep1.depType().parentChildDist();
+						double dep2Dist = dep2.depType().parentChildDist();
+						return dep1Dist > dep2Dist ? 1 : (dep1Dist < dep2Dist ? -1 : 0);
+					}
+				} 
+		);
+		
+		StringBuilder rightSb = new StringBuilder(30);
+		StringBuilder leftSb = new StringBuilder(30);
+
+		//Do insertion sort when adding, since list size <= 3, which means
+		//each side has on average 1.5 elements.
 		for(Dep dep : this.childDepList) {
 			
+			int parentFirstProb = dep.depType().parentFirstProb();
+			double parentChildDist = dep.depType().parentChildDist();
 			
+			int randInt = RAND_GEN.nextInt(TOTAL_PROB)+1;
+			Pos childPos = dep.childPos();
+			String childPosStr = childPos.createSubTreePhrase();
+			
+			if(randInt < parentFirstProb){
+				//depList already sorted
+				rightDepList.add(childPosStr);
+				rightSb.append(childPosStr).append(" ");
+			}else{
+				leftDepList.add(0, childPosStr);
+				leftSb.insert(0, " ").insert(0, childPosStr);
+			}			
 		}
+		
+		return leftSb.toString() + this.posWord + " " + rightSb.toString();
 		
 	}
 	
@@ -439,16 +470,18 @@ public class Pos {
 	public static String arrangePosStr(Pos originPos) {
 		
 		Pos curPos = originPos;
+		Pos prevPos = curPos;
 		
 		while(null != curPos) {
 			
 			curPos.createSubTreePhrase();
+			prevPos = curPos;
 			Dep parentDep = curPos.parentDep;
 			//get the parent
 			curPos = parentDep.parentPos();
 		}
 		
-		return originPos.subTreePhrase;
+		return prevPos.subTreePhrase;
 	}
 	
 	public PosType posType() {

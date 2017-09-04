@@ -32,6 +32,7 @@ public class Story {
 	private static final Map<PosTypeName, SearchableList<Integer>> posTypePCProbMap; 
 	private static final Pattern PC_TYPE_PATTERN = Pattern.compile("<p>.+\\((\\d+)%\\)\\s*<code>(.+)</code> nodes (.+)");
 	private static final String PLACEHOLDER_WORD = "PC";
+	private static final int TOTAL_PROB = 100;
 	
 	static {
 		POS_WORD_MAP = ArrayListMultimap.create();
@@ -91,7 +92,7 @@ public class Story {
 	 * 
 	 * @param posTypePCProbMMap
 	 */
-	private static void createPCProbMap(String s  , Map<PosTypeName, List<Integer>> posTypePCProbMap) {
+	private static void createPCProbMap(String s     , Map<PosTypeName, List<Integer>> posTypePCProbMap) {
 		//read data in from file
 		Matcher m;
 		int prob;

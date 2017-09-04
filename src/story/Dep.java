@@ -28,7 +28,16 @@ public class Dep {
 	/**map to lines such as "<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances)"
 	 used for constructing maps for a DepType. These lines are curated data. Keys are names*/
 	private static final Map<String, String> depTypeDataMap;
+	//<p>17580 instances of <code>nsubj</code> (96%) are right-to-left (child precedes parent).
+	//Average distance between parent and child is 2.0255896408201.
+	//used to determine ordering and relation. 
+	//keys are dep names, e.g. "nsubj"
+	private static final Map<String, Integer> leftRightProbMap;
+	//avg distance between parent and child
+	private static final Map<String, Double> childDistMap;
+	
 	private static final Random RAND_GEN = new Random();
+	private static final int TOTAL_PROB = 100;
 	
 	//dependencies
 	
@@ -41,7 +50,12 @@ public class Dep {
 	static {
 		//construct depTypeDataMap by reading data from file
 		depTypeDataMap = new HashMap<String, String>();
-		/////////
+		/////////construct map!!
+		
+		leftRightProbMap = new HashMap<String, Integer>();
+		childDistMap = new HashMap<String, Double>();
+		//create map
+		createLeftRightProbMap("  file name", leftRightProbMap, childDistMap);
 		
 	}
 	
@@ -51,7 +65,7 @@ public class Dep {
 			this.parentPos = pos_;
 		}else {
 			this.childPos = pos_;
-			this.depType = depType_;			
+			this.depType = depType_;
 		}
 		this.depType = depType_;	
 	}
@@ -70,14 +84,10 @@ public class Dep {
 	 */
 	public static enum DepType{
 		
-		NSUBJ(depTypeDataMap.get("nsubj"), 2, 1),
-		ROOT(depTypeDataMap.get("root"), 2, 1),
-		NONE("", 0, 0);
-		
-		//18641 instances of case (96%) are right-to-left (child precedes parent). 
-		//Average distance between parent and child is 2.0255896408201.
-		//used to determine ordering and relation.
-		
+		NSUBJ("nsubj"),
+		ROOT(depTypeDataMap.get("root")),
+		//handle exceptions triggered by "" !
+		NONE("");
 		
 		//<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances).
 		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
@@ -100,26 +110,80 @@ public class Dep {
 		private double parentChildDist;
 		//probability for left-right ordering, int between 0 and 100.
 		//left-right means parent preceeds child, right-left is otherway.
-		private int leftRightProb;
+		//private int leftRightProb;
 		
-		private DepType(String dataString,
-				double parentChildDist_, int leftRightProb_) {
+		/**Prob for Dep to be left-to-right (parent preceds child)
+		 * int between 0 and 100.*/		
+		private int parentFirstProb;
+		
+		private DepType(String depTypeName) {
 			
-			if(null == dataString) {
+			String mmapDataString = depTypeDataMap.get(depTypeName);
+			Integer leftRightProb = leftRightProbMap.get(depTypeName);
+			Double depDist = childDistMap.get(depTypeName);
+			
+			if(null == mmapDataString || null == leftRightProb || null == depDist) {
 				throw new IllegalArgumentException("data string for DepType cannot be null.");
 			}
+			
+			//extract distance from data		
+			this.parentFirstProb = leftRightProb;			
+			this.parentChildDist = depDist;
+			
+			//create maps for possible pos pairs for this DepType
 			parentChildMMap = ArrayListMultimap.create();
 			childParentMMap = ArrayListMultimap.create();
 			
 			parentChildTotalProbMap = new HashMap<PosTypeName, Integer>();
 			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();;
-			createDepMMaps(dataString, parentChildMMap, childParentMMap,
+			createDepMMaps(mmapDataString, parentChildMMap, childParentMMap,
 					parentChildTotalProbMap, childParentTotalProbMap);
 			
-			this.parentChildDist = parentChildDist_;
-			this.leftRightProb = leftRightProb_;
+			
 		}
 		
+		/**
+		 * Creates parent-first (left-right) probability.
+		 * E.g.
+		 * <p>17580 instances of <code>nsubj</code> (96%) are right-to-left (child precedes parent).
+		 * Average distance between parent and child is 2.54403066812705.</p>
+		 * @param leftRightDataString
+		 */
+		private void createLeftRightProbMap(String fileStr, Map<String, Integer> leftRightProbMap,
+				Map<String, Double> childDistMap) {
+			//read data in from file
+			
+			Pattern pat = Pattern.compile(".+<code>(.+)</code> \\((\\d+)%\\) are (.+) \\(.+");
+			Matcher m;
+			String depTypeName;
+			boolean probAdded = false;
+			if((m=pat.matcher(leftRightDataString)).matches()){
+				depTypeName = m.group(1);
+				int prob = Integer.parseInt(m.group(2));
+				String leftRightStr = m.group(3);
+				
+				if(leftRightStr.contains("left-to-right")){
+					leftRightProbMap.put(depTypeName, prob);
+					probAdded = true;
+				}else if(leftRightStr.contains("right-to-left")){
+					leftRightProbMap.put(depTypeName, TOTAL_PROB - prob);
+					probAdded = true;
+				}
+				
+			}
+			boolean distAdded = false;
+			Pattern pat1 = Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
+			if((m=pat1.matcher("        " )).matches()){
+				double dist = Double.parseDouble(m.group(1));
+				childDistMap.put(depTypeName, dist);
+				distAdded = true;
+			}
+			
+			if(!probAdded || !distAdded){
+				throw new IllegalArgumentException("leftRightDataString must contain ordering data");
+			}			
+		}
+
 		public static DepType getTypeFromName(String depTypeName) {
 			switch(depTypeName) {
 			case "nsubj":
@@ -238,6 +302,14 @@ public class Dep {
 			}
 		}		
 		
+		public int parentFirstProb(){
+			return this.parentFirstProb;
+		}
+		
+		public double parentChildDist(){
+			return this.parentChildDist;
+		}
+		
 	}/*end of DepType enum*/
 	
 	public Pos parentPos() {
@@ -248,6 +320,10 @@ public class Dep {
 		return childPos;
 	}
 
+	public DepType depType(){
+		return this.depType;
+	}
+	
 	/**
 	 * Pos and probability pair, used as value in 
 	 * childParentMap or parentChildMap.
