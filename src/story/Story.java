@@ -1,5 +1,6 @@
 package story;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,6 +14,7 @@ import com.google.common.collect.ListMultimap;
 
 import story.Pos.PosType;
 import story.Pos.PosType.PosTypeName;
+import utils.StoryUtils;
 import utils.StoryUtils.SearchableList;
 
 /**
@@ -39,8 +41,10 @@ public class Story {
 		
 		//fill map from data sources
 		
-		//create posTypePCProbMMap
+		//create data maps posTypePCProbMMap
 		Map<PosTypeName, List<Integer>> preMap = new HashMap<PosTypeName, List<Integer>>();
+		String pcProbFileStr = "";
+		//create map for how many children a Pos has
 		createPCProbMap("", preMap);
 		
 		posTypePCProbMap = processSearchablePreMap(preMap);
@@ -89,10 +93,12 @@ public class Story {
 	}
 
 	/**
-	 * 
+	 * Map of prob for how many children a Pos has.
 	 * @param posTypePCProbMMap
+	 * @param charset default is UTF-8 if none specified.
 	 */
-	private static void createPCProbMap(String s     , Map<PosTypeName, List<Integer>> posTypePCProbMap) {
+	private static void createPCProbMap(String fileStr, Map<PosTypeName, List<Integer>> posTypePCProbMap,
+			Charset... charset) {
 		//read data in from file
 		Matcher m;
 		int prob;
@@ -100,40 +106,46 @@ public class Story {
 		String posTypeStr;
 		String childrenCountStr;
 		
-		//match String such as "<p>2182 (8%) <code>VERB</code> nodes have one child.</p>"	
-		//gives 8 ~~ VERB ~~ have one child.</p> for the different groups.
-		if((m=PC_TYPE_PATTERN.matcher(s)).matches()) {
-			
-			posTypeStr = m.group(2);
-			
-			PosTypeName posTypeName = PosTypeName.getTypeFromName(posTypeStr);
-			if(posTypeName == PosTypeName.NONE) {
-				return      /*******here  ********/;
-			}
-			prob = Integer.parseInt(m.group(1));
-			childrenCountStr = m.group(3);
-
-			List<Integer> pcProbList = posTypePCProbMap.get(posTypeName);
-			
-			if(null == pcProbList) {
-				pcProbList = new ArrayList<Integer>();
-				for(int i = 0; i < 4; i++) {
-					pcProbList.add(0);					
+		List<String> lines = StoryUtils.readLinesFromFile(fileStr, charset);
+		
+		for(String line : lines){
+			/*match String such as "<p>2182 (8%) <code>VERB</code> nodes have one child.</p>"	
+			 gives 8 ~~ VERB ~~ have one child.</p> for the different groups. These two lie in 
+			 one string*/
+			if((m=PC_TYPE_PATTERN.matcher(line)).matches()) {
+				
+				posTypeStr = m.group(2);
+				
+				PosTypeName posTypeName = PosTypeName.getTypeFromName(posTypeStr);
+				if(posTypeName == PosTypeName.NONE) {
+					return      /*******here  ********/;
 				}
-				posTypePCProbMap.put(posTypeName, pcProbList);
-			}
-			
-			if(childrenCountStr.contains("are leaves")) {
-				pcProbList.set(0, prob);
-			}else if(childrenCountStr.contains("one child")) {
-				pcProbList.set(1, prob);
-			}else if(childrenCountStr.contains("two children")) {
-				pcProbList.set(2, prob);
-			}else if(childrenCountStr.contains("three or more children")) {
-				pcProbList.set(3, prob);
-			}
-			
-		}		
+				prob = Integer.parseInt(m.group(1));
+				childrenCountStr = m.group(3);
+	
+				List<Integer> pcProbList = posTypePCProbMap.get(posTypeName);
+				
+				if(null == pcProbList) {
+					pcProbList = new ArrayList<Integer>();
+					for(int i = 0; i < 4; i++) {
+						pcProbList.add(0);					
+					}
+					posTypePCProbMap.put(posTypeName, pcProbList);
+				}
+				
+				if(childrenCountStr.contains("are leaves")) {
+					pcProbList.set(0, prob);
+				}else if(childrenCountStr.contains("one child")) {
+					pcProbList.set(1, prob);
+				}else if(childrenCountStr.contains("two children")) {
+					pcProbList.set(2, prob);
+				}else if(childrenCountStr.contains("three or more children")) {
+					pcProbList.set(3, prob);
+				}
+				
+			}		
+		}
+		
 	}
 	
 	public static String getRandomWord(PosType posType) {

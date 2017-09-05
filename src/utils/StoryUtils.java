@@ -1,5 +1,13 @@
 package utils;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,6 +92,43 @@ public class StoryUtils {
 		
 	}
 	
+	public static List<String> readLinesFromFile(String fileStr , Charset... charsetAr){
+		Charset charset;
+		if(0 == charsetAr.length){
+			charset = Charset.forName("UTF-8");
+		}else{
+			charset = charsetAr[0];
+		}
+		List<String> lines = new ArrayList<String>();
+		try{
+			//FileReader fReader = null;
+			BufferedReader bReader = null;
+			InputStream fileInputStream = null;
+			InputStreamReader isReader = null;
+			try{
+				//fReader = new FileReader(fileStr);
+				fileInputStream = new FileInputStream(fileStr);
+				isReader = new InputStreamReader(fileInputStream, charset);
+				bReader = new BufferedReader(isReader);
+				
+				String line;
+				while((line=bReader.readLine()) != null){
+					lines.add(line);
+				}
+			}finally{
+				bReader.close();
+				isReader.close();
+				fileInputStream.close();
+			}
+		
+		}catch(FileNotFoundException e){
+			e.printStackTrace();
+			throw new IllegalStateException(e);
+		}catch(IOException e){
+			throw new IllegalStateException(e);
+		}
+		return lines;
+	}
 		
 	public static void main(String[] args) {
 		//binarySearch(1, 0,1,new ArrayList<Integer>());

@@ -52,8 +52,12 @@ public class Pos {
 		//construct depTypeDataMap by reading data from file
 		parentPosTypeDataMap = new HashMap<String, String>();
 		childPosTypeDataMap = new HashMap<String, String>();
+		//check parent child formts are same!
+		String childPosDataFileStr = "";
 		
-		/////////
+		String parentPosDataFileStr = "";
+		
+		
 	}
 	Pos(PosType posType_) {
 		this.posType = posType_;		
@@ -135,46 +139,7 @@ public class Pos {
 			childTotalProb = createMap(childDataString, childDepTypeMap, childDepTypePairList);			
 		}
 		
-		/**
-		 * DataString e.g. <a href="">en-dep/xcomp</a> (2502; 10% instances)
-		 * @param dataString
-		 * @param parentDepTypeMap
-		 * @param childDepTypeMap
-		 */
-		private int createMap(String dataString, Map<DepType, Integer> depTypeMap,
-				List<DepTypeProbPair> depTypePairList) {
-			
-			if(null == dataString) {
-				throw new IllegalArgumentException("data string for posType cannot be null.");
-			}			
-			String[] dataAr = COMMA_SEP_PATTERN.split(dataString);			
-			Matcher m;
-			String depTypeStr;
-			int prob;
-			DepType depType;
-			int totalProb = 0;
-			
-			for(String s : dataAr) {
-				if((m=DEP_PATTERN.matcher(s)).matches()) {
-					//e.g. "nsubj", or "root"
-					depTypeStr = m.group(1);
-					
-					if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
-						prob = Integer.parseInt(m.group(2));
-					
-						if("root".equals(depTypeStr)) {
-							this.isRootProb = prob;
-						}
-						//some data have 0 prob because low occurrence.
-						prob = prob > 0 ? prob : 1;
-						totalProb += prob;
-						depTypeMap.put(depType, totalProb);
-						depTypePairList.add(new DepTypeProbPair(depType, totalProb));
-					}					
-				}
-			}			
-			return totalProb;
-		}		
+		
 		
 		/**
 		 * Obtain a target DepType based on prob maps for given posType, get either parent or child
@@ -259,7 +224,48 @@ public class Pos {
 			this.prob = prob_;
 		}
 	}/**/
+	
+	/**
+	 * DataString e.g. <a href="">en-dep/xcomp</a> (2502; 10% instances)
+	 * @param dataString
+	 * @param parentDepTypeMap
+	 * @param childDepTypeMap
+	 */
+	private static int createMap(String dataString, Map<DepType, Integer> depTypeMap,
+			List<DepTypeProbPair> depTypePairList) {
 		
+		if(null == dataString) {
+			throw new IllegalArgumentException("data string for posType cannot be null.");
+		}			
+		String[] dataAr = COMMA_SEP_PATTERN.split(dataString);			
+		Matcher m;
+		String depTypeStr;
+		int prob;
+		DepType depType;
+		int totalProb = 0;
+		
+		for(String s : dataAr) {
+			if((m=DEP_PATTERN.matcher(s)).matches()) {
+				//e.g. "nsubj", or "root"
+				depTypeStr = m.group(1);
+				
+				if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
+					prob = Integer.parseInt(m.group(2));
+				
+					if("root".equals(depTypeStr)) {
+						this.isRootProb = prob;
+					}
+					//some data have 0 prob because low occurrence.
+					prob = prob > 0 ? prob : 1;
+					totalProb += prob;
+					depTypeMap.put(depType, totalProb);
+					depTypePairList.add(new DepTypeProbPair(depType, totalProb));
+				}					
+			}
+		}			
+		return totalProb;
+	}	
+	
 	/**
 	 * create sentence tree given a PosType
 	 * @param posType

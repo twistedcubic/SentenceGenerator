@@ -1,5 +1,6 @@
 package story;
 
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import com.google.common.collect.Multimap;
 import story.Pos.PosType;
 import story.Pos.PosType.PosTypeName;
 import story.Story.PosPCType;
+import utils.StoryUtils;
 
 /**
  * Possible parent-child relation between parent
@@ -141,49 +143,7 @@ public class Dep {
 			
 			
 		}
-		
-		/**
-		 * Creates parent-first (left-right) probability.
-		 * E.g.
-		 * <p>17580 instances of <code>nsubj</code> (96%) are right-to-left (child precedes parent).
-		 * Average distance between parent and child is 2.54403066812705.</p>
-		 * @param leftRightDataString
-		 */
-		private void createLeftRightProbMap(String fileStr, Map<String, Integer> leftRightProbMap,
-				Map<String, Double> childDistMap) {
-			//read data in from file
-			
-			Pattern pat = Pattern.compile(".+<code>(.+)</code> \\((\\d+)%\\) are (.+) \\(.+");
-			Matcher m;
-			String depTypeName;
-			boolean probAdded = false;
-			if((m=pat.matcher(leftRightDataString)).matches()){
-				depTypeName = m.group(1);
-				int prob = Integer.parseInt(m.group(2));
-				String leftRightStr = m.group(3);
-				
-				if(leftRightStr.contains("left-to-right")){
-					leftRightProbMap.put(depTypeName, prob);
-					probAdded = true;
-				}else if(leftRightStr.contains("right-to-left")){
-					leftRightProbMap.put(depTypeName, TOTAL_PROB - prob);
-					probAdded = true;
-				}
-				
-			}
-			boolean distAdded = false;
-			Pattern pat1 = Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
-			if((m=pat1.matcher("        " )).matches()){
-				double dist = Double.parseDouble(m.group(1));
-				childDistMap.put(depTypeName, dist);
-				distAdded = true;
-			}
-			
-			if(!probAdded || !distAdded){
-				throw new IllegalArgumentException("leftRightDataString must contain ordering data");
-			}			
-		}
-
+	
 		public static DepType getTypeFromName(String depTypeName) {
 			switch(depTypeName) {
 			case "nsubj":
@@ -312,6 +272,54 @@ public class Dep {
 		
 	}/*end of DepType enum*/
 	
+	/**
+	 * Creates parent-first (left-right) probability.
+	 * E.g.
+	 * <p>17580 instances of <code>nsubj</code> (96%) are right-to-left (child precedes parent).
+	 * Average distance between parent and child is 2.54403066812705.</p>
+	 * @param leftRightDataString
+	 */
+	private static void createLeftRightProbMap(String fileStr, Map<String, Integer> leftRightProbMap,
+			Map<String, Double> childDistMap, Charset...charset) {
+		//read data in from file
+		List<String> lines = StoryUtils.readLinesFromFile(fileStr, charset);
+		
+		Pattern pat = Pattern.compile(".+<code>(.+)</code> \\((\\d+)%\\) are (.+) \\(.+");
+		Matcher m;
+		String depTypeName;
+		
+		for(String line : lines){
+			
+		boolean probAdded = false;
+		boolean distAdded = false;
+		if((m=pat.matcher(line)).matches()){
+			depTypeName = m.group(1);
+			int prob = Integer.parseInt(m.group(2));
+			String leftRightStr = m.group(3);
+			
+			if(leftRightStr.contains("left-to-right")){
+				leftRightProbMap.put(depTypeName, prob);
+				probAdded = true;
+			}else if(leftRightStr.contains("right-to-left")){
+				leftRightProbMap.put(depTypeName, TOTAL_PROB - prob);
+				probAdded = true;
+			}
+			
+			Pattern pat1 = Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
+			if((m=pat1.matcher(line)).matches()){
+				double dist = Double.parseDouble(m.group(1));
+				childDistMap.put(depTypeName, dist);
+				distAdded = true;
+			}
+		}
+		
+		if(!probAdded || !distAdded){
+			throw new IllegalArgumentException("leftRightDataString must contain ordering data");
+		}	
+		}
+		
+	}
+
 	public Pos parentPos() {
 		return parentPos;
 	}
