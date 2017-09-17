@@ -11,6 +11,10 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import story.Pos;
+import story.Pos.PosType;
+import story.Pos.PosType.PosTypeName;
+
 /**
  * Utility class for generating story 
  * @author yihed
@@ -130,7 +134,4 @@ public class StoryUtils {
 		return lines;
 	}
 		
-	public static void main(String[] args) {
-		//binarySearch(1, 0,1,new ArrayList<Integer>());
-	}
 }

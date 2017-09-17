@@ -14,7 +14,9 @@ import com.google.common.collect.ListMultimap;
 
 import story.Dep.DepType;
 import story.Pos.PosType;
+import story.Pos.PosType.PosTypeName;
 import story.Story.PosPCType;
+import utils.StoryUtils;
 import utils.StoryUtils.SearchableList;
 
 /**
@@ -31,6 +33,17 @@ public class Pos {
 	private static final Map<String, String> childPosTypeDataMap;
 	private static final Random RAND_GEN = new Random();
 	private static final int TOTAL_PROB = 100;
+	private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
+	//pattern used to extract parent-child relations. 2 groups.
+	private static Pattern DEP_PATTERN 
+		= Pattern.compile(".+en-dep/(.+)</a>(?:.+);\\s*([\\d]+)% inst.+");
+	//<p><code>VERB</code> nodes are attached to their parents using 32 different relations:
+	//4 groups
+	private static final Pattern DEP_INTRO_PATTERN = Pattern.compile("(.+)<code>(.+)</code> nodes are attached (.+):(.+)");
+	
+	private static final Map<PosTypeName, List<DepTypeProbPair>> parentDepTypePairListMap;
+	private static final Map<PosTypeName, List<DepTypeProbPair>> childDepTypePairListMap;	
+	private static final Map<PosTypeName, Integer> rootProbMap;
 	
 	private PosType posType;
 	
@@ -52,11 +65,16 @@ public class Pos {
 		//construct depTypeDataMap by reading data from file
 		parentPosTypeDataMap = new HashMap<String, String>();
 		childPosTypeDataMap = new HashMap<String, String>();
-		//check parent child formts are same!
-		String childPosDataFileStr = "";
 		
-		String parentPosDataFileStr = "";
+		parentDepTypePairListMap = new HashMap<PosTypeName, List<DepTypeProbPair>>();
+		//create map		
+		childDepTypePairListMap = new HashMap<PosTypeName, List<DepTypeProbPair>>();
+		rootProbMap = new HashMap<PosTypeName, Integer>();
 		
+		String fileStr = "      ";
+		createMap(fileStr, parentDepTypePairListMap, childDepTypePairListMap, rootProbMap);
+		
+		//check parent child formts are same! <-- yep
 		
 	}
 	Pos(PosType posType_) {
@@ -77,14 +95,46 @@ public class Pos {
 	 * parent-child relations (Dep's).
 	 */
 	public static enum PosType{
-		VERB(parentPosTypeDataMap.get("VERB") , childPosTypeDataMap.get("verb")), 
-		NONE("", "");
+		ADJ(PosTypeName.ADJ),
+		ADP(PosTypeName.ADP),
+		ADV(PosTypeName.ADV),
+		AUX(PosTypeName.AUX),
+		CONJ(PosTypeName.CONJ),
+		DET(PosTypeName.DET),
+		INTJ(PosTypeName.INTJ),			
+		NOUN(PosTypeName.NOUN),
+		NUM(PosTypeName.NUM),
+		PART(PosTypeName.PART),
+		PRON(PosTypeName.PRON),
+		PROPN(PosTypeName.PROPN),
+		PUNCT(PosTypeName.PUNCT),
+		SCONJ(PosTypeName.SCONJ),
+		SYM(PosTypeName.SYM),
+		X(PosTypeName.X),
+		VERB(PosTypeName.VERB), 		
+		NONE(PosTypeName.NONE);
 		
 		/**
 		 * Name strings for this PosType.
 		 */
 		public static enum PosTypeName{
+			ADJ("ADJ"),
+			ADP("ADP"),
+			ADV("ADV"),
+			AUX("AUX"),
+			CONJ("CONJ"),
+			DET("DET"),
+			INTJ("INTJ"),			
 			VERB("VERB"),
+			NOUN("NOUN"),
+			NUM("NUM"),
+			PART("PART"),
+			PRON("PRON"),
+			PROPN("PROPN"),
+			PUNCT("PUNCT"),
+			SCONJ("SCONJ"),
+			SYM("SYM"),
+			X("X"),
 			NONE("");
 			
 			private String nameStr;
@@ -115,13 +165,9 @@ public class Pos {
 		}/*end of PosTypeName enum*/
 		
 		
-		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
-		//pattern used to extract parent-child relations. 2 groups.
-		private static Pattern DEP_PATTERN 
-			= Pattern.compile(".+en-dep/(.+)</a>(?:.+);\\s*([\\d]+)% inst.+");
 		//relations to parents (e.g. nsubj) and their prob (between 0 and 100)
-		private Map<DepType, Integer> parentDepTypeMap;
-		private Map<DepType, Integer> childDepTypeMap;
+		//private Map<DepType, Integer> parentDepTypeMap;
+		//private Map<DepType, Integer> childDepTypeMap;
 		private List<DepTypeProbPair> parentDepTypePairList;
 		private List<DepTypeProbPair> childDepTypePairList;
 		
@@ -130,15 +176,16 @@ public class Pos {
 		/** probability (as percentage) for this pos being root, between 0 and 100.*/
 		private int isRootProb;
 		
-		private PosType(String parentDataString, String childDataString) {
-			parentDepTypeMap = new HashMap<DepType, Integer>();
-			childDepTypeMap = new HashMap<DepType, Integer>();		
-			parentDepTypePairList = new ArrayList<DepTypeProbPair>();
-			childDepTypePairList = new ArrayList<DepTypeProbPair>();
-			parentTotalProb = createMap(parentDataString, parentDepTypeMap, parentDepTypePairList);
-			childTotalProb = createMap(childDataString, childDepTypeMap, childDepTypePairList);			
+		private PosType(PosTypeName posTypeName) {
+			//parentDepTypeMap = new HashMap<DepType, Integer>();
+			//childDepTypeMap = new HashMap<DepType, Integer>();		
+			//parentDepTypePairList = new ArrayList<DepTypeProbPair>();
+			//childDepTypePairList = new ArrayList<DepTypeProbPair>();
+			
+			parentDepTypePairList = parentDepTypePairListMap.get(posTypeName);
+			childDepTypePairList = childDepTypePairListMap.get(posTypeName);
+			isRootProb = rootProbMap.get(posTypeName);
 		}
-		
 		
 		
 		/**
@@ -228,42 +275,66 @@ public class Pos {
 	/**
 	 * DataString e.g. <a href="">en-dep/xcomp</a> (2502; 10% instances)
 	 * @param dataString
-	 * @param parentDepTypeMap
-	 * @param childDepTypeMap
+	 * @param parentDepTypeMapList maps for relations to parent and children
+	 * @param childDepTypeMapList
 	 */
-	private static int createMap(String dataString, Map<DepType, Integer> depTypeMap,
-			List<DepTypeProbPair> depTypePairList) {
+	private static void createMap(String fileStr, Map<PosTypeName, List<DepTypeProbPair>> parentDepTypeMapList,
+			Map<PosTypeName, List<DepTypeProbPair>> childDepTypeMapList,
+			Map<PosTypeName, Integer> rootProbMap) {
 		
-		if(null == dataString) {
-			throw new IllegalArgumentException("data string for posType cannot be null.");
+		if(null == fileStr) {
+			throw new IllegalArgumentException("fileStr for posType cannot be null.");
 		}			
-		String[] dataAr = COMMA_SEP_PATTERN.split(dataString);			
-		Matcher m;
-		String depTypeStr;
-		int prob;
-		DepType depType;
-		int totalProb = 0;
+		List<String> lines = StoryUtils.readLinesFromFile(fileStr);
 		
-		for(String s : dataAr) {
-			if((m=DEP_PATTERN.matcher(s)).matches()) {
-				//e.g. "nsubj", or "root"
-				depTypeStr = m.group(1);
+		Matcher introMatcher;
+		for(String line : lines){
+			//DEP_INTRO_PATTERN has 4 groups
+			if((introMatcher=DEP_INTRO_PATTERN.matcher(line)).matches()){
+				//e.g. VERB
+				String posNameStr = introMatcher.group(2);
+				Map<PosTypeName, List<DepTypeProbPair>> chosenMap;
+				if(introMatcher.group(3).contains("parents")){
+					chosenMap = parentDepTypeMapList;
+				}else{
+					chosenMap = childDepTypeMapList;
+				}
 				
-				if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
-					prob = Integer.parseInt(m.group(2));
+				List<DepTypeProbPair> probPairList = new ArrayList<DepTypeProbPair>();
 				
-					if("root".equals(depTypeStr)) {
-						this.isRootProb = prob;
+				String dataStr = introMatcher.group(4);
+				String[] dataAr = COMMA_SEP_PATTERN.split(dataStr);			
+				Matcher m;
+				String depTypeStr;
+				int prob;
+				DepType depType;
+				int totalProb = 0;
+				
+				for(String s : dataAr) {
+					if((m=DEP_PATTERN.matcher(s)).matches()) {
+						//e.g. "nsubj", or "root"
+						depTypeStr = m.group(1);
+						
+						if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
+							prob = Integer.parseInt(m.group(2));
+						
+							if("root".equals(depTypeStr)) {
+								rootProbMap.put(PosTypeName.getTypeFromName(posNameStr), prob);
+								//this.isRootProb = prob;
+							}
+							//some data have 0 prob because low occurrence.
+							prob = prob > 0 ? prob : 1;
+							totalProb += prob;
+							//depTypeMap.put(depType, totalProb);
+							probPairList.add(new DepTypeProbPair(depType, totalProb));							
+						}
 					}
-					//some data have 0 prob because low occurrence.
-					prob = prob > 0 ? prob : 1;
-					totalProb += prob;
-					depTypeMap.put(depType, totalProb);
-					depTypePairList.add(new DepTypeProbPair(depType, totalProb));
-				}					
+				}
+				chosenMap.put(PosTypeName.getTypeFromName(posNameStr), probPairList);
 			}
-		}			
-		return totalProb;
+		}
+		
+		//return totalProb;
 	}	
 	
 	/**
@@ -447,7 +518,6 @@ public class Pos {
 		for(Dep dep : this.childDepList) {
 			
 			int parentFirstProb = dep.depType().parentFirstProb();
-			double parentChildDist = dep.depType().parentChildDist();
 			
 			int randInt = RAND_GEN.nextInt(TOTAL_PROB)+1;
 			Pos childPos = dep.childPos();
@@ -461,10 +531,8 @@ public class Pos {
 				leftDepList.add(0, childPosStr);
 				leftSb.insert(0, " ").insert(0, childPosStr);
 			}			
-		}
-		
-		return leftSb.toString() + this.posWord + " " + rightSb.toString();
-		
+		}		
+		return leftSb.toString() + this.posWord + " " + rightSb.toString();		
 	}
 	
 	/**

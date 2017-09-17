@@ -53,6 +53,7 @@ public class Dep {
 		//construct depTypeDataMap by reading data from file
 		depTypeDataMap = new HashMap<String, String>();
 		/////////construct map!!
+		createDepTypeDataMap();
 		
 		leftRightProbMap = new HashMap<String, Integer>();
 		childDistMap = new HashMap<String, Double>();
@@ -85,9 +86,13 @@ public class Dep {
 	 * parent-child pairs.
 	 */
 	public static enum DepType{
+		ACL("acl"),
+		advcl("advcl"),
 		
+		aux("aux"),
 		NSUBJ("nsubj"),
-		ROOT(depTypeDataMap.get("root")),
+		ROOT("root"),
+		
 		//handle exceptions triggered by "" !
 		NONE("");
 		

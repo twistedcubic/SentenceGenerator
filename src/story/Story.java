@@ -26,7 +26,7 @@ public class Story {
 	/**
 	 * Map of pos and words. E.g. on entry for "NOUN" is "apple"
 	 */
-	private static final ListMultimap<PosType, String> POS_WORD_MAP;
+	private static final ListMultimap<PosTypeName, String> POS_WORD_MAP;
 	private static final Random RAND_GEN = new Random();
 	//e.g. <p>1084 (4%) <code>VERB</code> nodes are leaves.</p>
 		//data on the nodes parent child type stats. Generate number of
@@ -38,20 +38,23 @@ public class Story {
 	
 	static {
 		POS_WORD_MAP = ArrayListMultimap.create();
+		//should create from file
+		
+		fillPosWordMap(POS_WORD_MAP);
 		
 		//fill map from data sources
 		
 		//create data maps posTypePCProbMMap
 		Map<PosTypeName, List<Integer>> preMap = new HashMap<PosTypeName, List<Integer>>();
-		String pcProbFileStr = "";
+		String pcProbFileStr = "src/story/data/......... ";
 		//create map for how many children a Pos has
-		createPCProbMap("", preMap);
+		createPCProbMap(pcProbFileStr, preMap);
 		
 		posTypePCProbMap = processSearchablePreMap(preMap);
 		
 	}
 	//given a PosType, 
-
+	
 	/**
 	 * Used to identify whether supplied Pos is parent or 
 	 * child in a Dep.
@@ -68,11 +71,14 @@ public class Story {
 		}
 	}
 	
-	public static void createTree(PosType posType) {
+	private static void fillPosWordMap(ListMultimap<PosTypeName, String> POS_WORD_MAP){
+		for(PosTypeName posTypeName : PosTypeName.values()){
+			POS_WORD_MAP.put(posTypeName, "word");
+		}
 		
 	}
 	
-	public static ListMultimap<PosType, String> POS_WORD_MAP(){
+	public static ListMultimap<PosTypeName, String> POS_WORD_MAP(){
 		return POS_WORD_MAP;
 	}
 	
@@ -150,7 +156,7 @@ public class Story {
 	
 	public static String getRandomWord(PosType posType) {
 		
-		List<String> posTypeWordList = Story.POS_WORD_MAP().get(posType);
+		List<String> posTypeWordList = Story.POS_WORD_MAP().get(posType.posTypeName());
 		if(null == posTypeWordList) {
 			return PLACEHOLDER_WORD;
 		}
@@ -160,19 +166,18 @@ public class Story {
 	public static Map<PosTypeName, SearchableList<Integer>> posTypePCProbMap(){
 		return posTypePCProbMap;
 	}
-	
-	//
-	
 
 	//create story, connecting input words and prob
 	public static void main(String[] args) {
 		//guess pos for the input words using pos tagger, 
 		
-		
-		PosType posType = PosType.NONE;
+		PosType posType = PosType.VERB;
 		//origin of tree
 		Pos originPos = Pos.createSentenceTree(posType);
-		//arrange tree into a sentence based on 
+		//arrange tree into a sentence based on 		
+		String sentence = Pos.arrangePosStr(originPos);
+				
+		System.out.println("sentence: " + sentence);
 		
 	}
 	
