@@ -1,0 +1,135 @@
+<p>1084 (4%) <code>VERB</code> nodes are leaves.</p>
+
+<p>2182 (8%) <code>VERB</code> nodes have one child.</p>
+
+<p>4744 (18%) <code>VERB</code> nodes have two children.</p>
+
+<p>17835 (69%) <code>VERB</code> nodes have three or more children.</p>
+
+<p>9049 (63%) <code>ADJ</code> nodes are leaves.</p>
+
+<p>1807 (13%) <code>ADJ</code> nodes have one child.</p>
+
+<p>691 (5%) <code>ADJ</code> nodes have two children.</p>
+
+<p>2719 (19%) <code>ADJ</code> nodes have three or more children.</p>
+
+<p>19415 (99%) <code>ADP</code> nodes are leaves.</p>
+
+<p>213 (1%) <code>ADP</code> nodes have one child.</p>
+
+<p>22 (0%) <code>ADP</code> nodes have two children.</p>
+
+<p>11 (0%) <code>ADP</code> nodes have three or more children.</p>
+
+<p>9853 (83%) <code>ADV</code> nodes are leaves.</p>
+
+<p>1399 (12%) <code>ADV</code> nodes have one child.</p>
+
+<p>255 (2%) <code>ADV</code> nodes have two children.</p>
+
+<p>307 (3%) <code>ADV</code> nodes have three or more children.</p>
+
+<p>13759 (99%) <code>AUX</code> nodes are leaves.</p>
+
+<p>21 (0%) <code>AUX</code> nodes have one child.</p>
+
+<p>34 (0%) <code>AUX</code> nodes have two children.</p>
+
+<p>38 (0%) <code>AUX</code> nodes have three or more children.</p>
+
+<p>7438 (99%) <code>CCONJ</code> nodes are leaves.</p>
+
+<p>22 (0%) <code>CCONJ</code> nodes have one child.</p>
+
+<p>24 (0%) <code>CCONJ</code> nodes have two children.</p>
+
+<p>3 (0%) <code>CCONJ</code> nodes have three or more children.</p>
+
+<p>17833 (98%) <code>DET</code> nodes are leaves.</p>
+
+<p>210 (1%) <code>DET</code> nodes have one child.</p>
+
+<p>91 (1%) <code>DET</code> nodes have two children.</p>
+
+<p>46 (0%) <code>DET</code> nodes have three or more children.</p>
+
+<p>683 (85%) <code>INTJ</code> nodes are leaves.</p>
+
+<p>81 (10%) <code>INTJ</code> nodes have one child.</p>
+
+<p>24 (3%) <code>INTJ</code> nodes have two children.</p>
+
+<p>15 (2%) <code>INTJ</code> nodes have three or more children.</p>
+
+<p>6021 (15%) <code>NOUN</code> nodes are leaves.</p>
+
+<p>10147 (26%) <code>NOUN</code> nodes have one child.</p>
+
+<p>10983 (28%) <code>NOUN</code> nodes have two children.</p>
+
+<p>11827 (30%) <code>NOUN</code> nodes have three or more children.</p>
+
+<p>2787 (64%) <code>NUM</code> nodes are leaves.</p>
+
+<p>1003 (23%) <code>NUM</code> nodes have one child.</p>
+
+<p>250 (6%) <code>NUM</code> nodes have two children.</p>
+
+<p>337 (8%) <code>NUM</code> nodes have three or more children.</p>
+
+<p>6133 (99%) <code>PART</code> nodes are leaves.</p>
+
+<p>47 (1%) <code>PART</code> nodes have one child.</p>
+
+<p>10 (0%) <code>PART</code> nodes have two children.</p>
+
+<p>7 (0%) <code>PART</code> nodes have three or more children.</p>
+
+<p>18746 (90%) <code>PRON</code> nodes are leaves.</p>
+
+<p>1532 (7%) <code>PRON</code> nodes have one child.</p>
+
+<p>295 (1%) <code>PRON</code> nodes have two children.</p>
+
+<p>222 (1%) <code>PRON</code> nodes have three or more children.</p>
+
+<p>6469 (44%) <code>PROPN</code> nodes are leaves.</p>
+
+<p>4018 (27%) <code>PROPN</code> nodes have one child.</p>
+
+<p>2173 (15%) <code>PROPN</code> nodes have two children.</p>
+
+<p>2164 (15%) <code>PROPN</code> nodes have three or more children.</p>
+
+<p>26713 (100%) <code>PUNCT</code> nodes are leaves.</p>
+
+<p>41 (0%) <code>PUNCT</code> nodes have one child.</p>
+
+<p>5 (0%) <code>PUNCT</code> nodes have two children.</p>
+
+<p>3 (0%) <code>PUNCT</code> nodes have three or more children.</p>
+
+<p>4183 (99%) <code>SCONJ</code> nodes are leaves.</p>
+
+<p>49 (1%) <code>SCONJ</code> nodes have one child.</p>
+
+<p>12 (0%) <code>SCONJ</code> nodes have two children.</p>
+
+<p>1 (0%) <code>SCONJ</code> nodes have three or more children.</p>
+
+<p>345 (52%) <code>SYM</code> nodes are leaves.</p>
+
+<p>96 (14%) <code>SYM</code> nodes have one child.</p>
+
+<p>86 (13%) <code>SYM</code> nodes have two children.</p>
+
+<p>139 (21%) <code>SYM</code> nodes have three or more children.</p>
+
+<p>681 (68%) <code>X</code> nodes are leaves.</p>
+
+<p>184 (18%) <code>X</code> nodes have one child.</p>
+
+<p>94 (9%) <code>X</code> nodes have two children.</p>
+
+<p>42 (4%) <code>X</code> nodes have three or more children.</p>

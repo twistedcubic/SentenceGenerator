@@ -71,8 +71,8 @@ public class Pos {
 		childDepTypePairListMap = new HashMap<PosTypeName, List<DepTypeProbPair>>();
 		rootProbMap = new HashMap<PosTypeName, Integer>();
 		
-		String fileStr = "      ";
-		createMap(fileStr, parentDepTypePairListMap, childDepTypePairListMap, rootProbMap);
+		String fileStr = "data/posStats.txt";
+		createPosStatsMap(fileStr, parentDepTypePairListMap, childDepTypePairListMap, rootProbMap);
 		
 		//check parent child formts are same! <-- yep
 		
@@ -273,12 +273,13 @@ public class Pos {
 	}/**/
 	
 	/**
+	 * Creates map for statistics for all pos.
 	 * DataString e.g. <a href="">en-dep/xcomp</a> (2502; 10% instances)
 	 * @param dataString
 	 * @param parentDepTypeMapList maps for relations to parent and children
 	 * @param childDepTypeMapList
 	 */
-	private static void createMap(String fileStr, Map<PosTypeName, List<DepTypeProbPair>> parentDepTypeMapList,
+	private static void createPosStatsMap(String fileStr, Map<PosTypeName, List<DepTypeProbPair>> parentDepTypeMapList,
 			Map<PosTypeName, List<DepTypeProbPair>> childDepTypeMapList,
 			Map<PosTypeName, Integer> rootProbMap) {
 		

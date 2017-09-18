@@ -52,8 +52,9 @@ public class Dep {
 	static {
 		//construct depTypeDataMap by reading data from file
 		depTypeDataMap = new HashMap<String, String>();
+		
 		/////////construct map!!
-		createDepTypeDataMap();
+		createDepTypeDataMap(  , depTypeDataMap);
 		
 		leftRightProbMap = new HashMap<String, Integer>();
 		childDistMap = new HashMap<String, Double>();
@@ -100,7 +101,7 @@ public class Dep {
 		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
 		//pattern used to extract parent-child relations. 3 groups.
 		private static Pattern DEP_PATTERN 
-			= Pattern.compile(".+en-pos/(.+)</a>(?:.+)pos/(.+)</a>(?:.+);\\s*([\\d]+)% inst.+");
+			= Pattern.compile(".+en-pos/(.+)</a>(?:.+)pos/(.+)</a>(?:.+);\\s*([\\d]+)% instance.+");
 		
 		//probability map for parent-child relations
 		//where parent pos are keys.
@@ -144,8 +145,7 @@ public class Dep {
 			parentChildTotalProbMap = new HashMap<PosTypeName, Integer>();
 			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();;
 			createDepMMaps(mmapDataString, parentChildMMap, childParentMMap,
-					parentChildTotalProbMap, childParentTotalProbMap);
-			
+					parentChildTotalProbMap, childParentTotalProbMap);			
 			
 		}
 	
@@ -155,6 +155,7 @@ public class Dep {
 				return NSUBJ;
 			case "root":
 				return ROOT;
+			
 			default:
 				//better default!?
 				return NONE;

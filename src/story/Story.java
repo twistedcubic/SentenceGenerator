@@ -46,7 +46,8 @@ public class Story {
 		
 		//create data maps posTypePCProbMMap
 		Map<PosTypeName, List<Integer>> preMap = new HashMap<PosTypeName, List<Integer>>();
-		String pcProbFileStr = "src/story/data/......... ";
+		/*String e.g. <p>2182 (8%) <code>VERB</code> nodes have one child.</p>*/
+		String pcProbFileStr = "data/pcProb.txt";
 		//create map for how many children a Pos has
 		createPCProbMap(pcProbFileStr, preMap);
 		
@@ -115,6 +116,7 @@ public class Story {
 		List<String> lines = StoryUtils.readLinesFromFile(fileStr, charset);
 		
 		for(String line : lines){
+			
 			/*match String such as "<p>2182 (8%) <code>VERB</code> nodes have one child.</p>"	
 			 gives 8 ~~ VERB ~~ have one child.</p> for the different groups. These two lie in 
 			 one string*/
