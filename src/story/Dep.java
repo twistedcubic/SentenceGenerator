@@ -40,6 +40,10 @@ public class Dep {
 	
 	private static final Random RAND_GEN = new Random();
 	private static final int TOTAL_PROB = 100;
+	private static final Pattern AVG_DIST_PATTERN 
+		= Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
+	private static final Pattern DEP_STATS_PAT 
+		= Pattern.compile(".+<code>(.+)</code> \\((\\d+)%\\) are (.+) \\(.+");
 	
 	//dependencies
 	
@@ -290,38 +294,37 @@ public class Dep {
 		//read data in from file
 		List<String> lines = StoryUtils.readLinesFromFile(fileStr, charset);
 		
-		Pattern pat = Pattern.compile(".+<code>(.+)</code> \\((\\d+)%\\) are (.+) \\(.+");
+		
 		Matcher m;
 		String depTypeName;
 		
 		for(String line : lines){
 			
-		boolean probAdded = false;
-		boolean distAdded = false;
-		if((m=pat.matcher(line)).matches()){
-			depTypeName = m.group(1);
-			int prob = Integer.parseInt(m.group(2));
-			String leftRightStr = m.group(3);
-			
-			if(leftRightStr.contains("left-to-right")){
-				leftRightProbMap.put(depTypeName, prob);
-				probAdded = true;
-			}else if(leftRightStr.contains("right-to-left")){
-				leftRightProbMap.put(depTypeName, TOTAL_PROB - prob);
-				probAdded = true;
+			boolean probAdded = false;
+			boolean distAdded = false;
+			if((m=DEP_STATS_PAT.matcher(line)).matches()){
+				depTypeName = m.group(1);
+				int prob = Integer.parseInt(m.group(2));
+				String leftRightStr = m.group(3);
+				
+				if(leftRightStr.contains("left-to-right")){
+					leftRightProbMap.put(depTypeName, prob);
+					probAdded = true;
+				}else if(leftRightStr.contains("right-to-left")){
+					leftRightProbMap.put(depTypeName, TOTAL_PROB - prob);
+					probAdded = true;
+				}
+				//these two need to be on same line, so know which dep is being referred to
+				if((m=AVG_DIST_PATTERN.matcher(line)).matches()){
+					double dist = Double.parseDouble(m.group(1));
+					childDistMap.put(depTypeName, dist);
+					distAdded = true;
+				}
 			}
 			
-			Pattern pat1 = Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
-			if((m=pat1.matcher(line)).matches()){
-				double dist = Double.parseDouble(m.group(1));
-				childDistMap.put(depTypeName, dist);
-				distAdded = true;
-			}
-		}
-		
-		if(!probAdded || !distAdded){
-			throw new IllegalArgumentException("leftRightDataString must contain ordering data");
-		}	
+			if(!probAdded || !distAdded){
+				throw new IllegalArgumentException("leftRightDataString must contain ordering data");
+			}	
 		}
 		
 	}
