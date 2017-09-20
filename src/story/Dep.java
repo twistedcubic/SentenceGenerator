@@ -42,8 +42,14 @@ public class Dep {
 	private static final int TOTAL_PROB = 100;
 	private static final Pattern AVG_DIST_PATTERN 
 		= Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
-	private static final Pattern DEP_STATS_PAT 
+	private static final Pattern DEP_STATS_PATT 
 		= Pattern.compile(".+<code>(.+)</code> \\((\\d+)%\\) are (.+) \\(.+");
+	//e.g. parts of speech are connected with <code>neg</code>
+	private static final Pattern DEP_STATS_INTRO_PATT 
+		= Pattern.compile(".+speech are connected with <code>(.+)</code>:.+");
+	
+	private static final Map<String, String> depTypeNameConvertMap;
+	private static final Map<String, String> depTypeNameConvertReverseMap;
 	
 	//dependencies
 	
@@ -56,14 +62,30 @@ public class Dep {
 	static {
 		//construct depTypeDataMap by reading data from file
 		depTypeDataMap = new HashMap<String, String>();
+		depTypeNameConvertMap = new HashMap<String, String>();
+		depTypeNameConvertReverseMap = new HashMap<String, String>();
+		//acl:relcl -> aclrelcl case->pre cc:preconj compound:prt  det:predet
+		//nmod:npmod nmod:poss nmod:tmod
+		depTypeNameConvertMap.put("acl:relcl", "aclrelcl");
+		depTypeNameConvertMap.put("case", "pre");
+		depTypeNameConvertMap.put("cc:preconj", "ccpreconj");
+		depTypeNameConvertMap.put("compound:prt", "compoundprt");
+		depTypeNameConvertMap.put("det:predet", "detpredet");
+		depTypeNameConvertMap.put("nmod:npmod", "nmodnpmod");
+		depTypeNameConvertMap.put("nmod:poss", "nmodposs");
+		depTypeNameConvertMap.put("nmod:tmod", "nmodtmod");
 		
-		/////////construct map!!
-		createDepTypeDataMap(  , depTypeDataMap);
+		for(Map.Entry<String, String> entry : depTypeNameConvertMap.entrySet()){
+			depTypeNameConvertReverseMap.put(entry.getValue(), entry.getKey());
+		}
+		
+		/////////construct map data string map for dep stats!
+		createDepTypeDataMap("data/depStats.txt", depTypeDataMap);
 		
 		leftRightProbMap = new HashMap<String, Integer>();
 		childDistMap = new HashMap<String, Double>();
 		//create map
-		createLeftRightProbMap("  file name", leftRightProbMap, childDistMap);
+		createLeftRightProbMap("data/depLeftRightProb.txt", leftRightProbMap, childDistMap);
 		
 	}
 	
@@ -91,13 +113,54 @@ public class Dep {
 	 * parent-child pairs.
 	 */
 	public static enum DepType{
-		ACL("acl"),
+		//don't need names!!!
+		acl("acl"),
 		advcl("advcl"),
-		
+		aclrelcl("aclrelcl"),
+		advmod("advmod"),
+		amod("amod"),
+		appos("appos"),
 		aux("aux"),
-		NSUBJ("nsubj"),
-		ROOT("root"),
-		
+		auxpass("auxpass"),
+		pre("pre"),
+		ccpreconj("ccpreconj"),
+		cc("cc"),
+		ccomp("ccomp"),
+		compoundprt("compoundprt"),
+		compound("compound"),
+		conj("conj"),
+		cop("cop"),
+		csubj("csubj"),
+		csubjpass("csubjpass"),
+		dep("dep"),
+		detpredet("detpredet"),
+		det("det"),
+		discourse("discourse"),
+		dislocated("dislocated"),
+		expl("expl"),
+		fixed("fixed"),
+		flat("flat"),
+		foreign("foreign"),
+		goeswith("goeswith"),
+		iobj("iobj"),
+		list("list"),
+		mark("mark"),
+		nmodnpmod("nmodnpmod"),
+		nmodposs("nmodposs"),
+		nmodtmod("nmodtmod"),
+		nmod("nmod"),		
+		nsubj("nsubj"),
+		nummod("nummod"),
+		dobj("dobj"),
+		orphan("orphan"),
+		parataxis("parataxis"),
+		punct("punct"),
+		reparandum("reparandum"),		
+		root("root"),
+		vocative("vocative"),
+		xcomp("xcomp"),
+		//acl:relcl -> aclrelcl case->pre cc:preconj compound:prt  det:predet
+		//nmod:npmod nmod:poss nmod:tmod
 		//handle exceptions triggered by "" !
 		NONE("");
 		
@@ -154,7 +217,8 @@ public class Dep {
 		}
 	
 		public static DepType getTypeFromName(String depTypeName) {
-			switch(depTypeName) {
+			/*switch(depTypeName) {
+			
 			case "nsubj":
 				return NSUBJ;
 			case "root":
@@ -162,6 +226,13 @@ public class Dep {
 			
 			default:
 				//better default!?
+				return NONE;
+			}*/
+			depTypeName = normalizeDepTypeName(depTypeName);
+			try{
+				return DepType.valueOf(depTypeName);
+			}catch(IllegalArgumentException e){
+				System.out.println("Unrecognized dep name "+depTypeName);
 				return NONE;
 			}
 		}
@@ -282,6 +353,26 @@ public class Dep {
 		
 	}/*end of DepType enum*/
 	
+
+	/**
+	 * createDepTypeDataMap
+	 * @param string
+	 * @param deptypedatamap
+	 */
+	private static void createDepTypeDataMap(String fileStr, Map<String, String> deptypedatamap) {
+		List<String> depStatsLines = StoryUtils.readLinesFromFile(fileStr);
+		
+		Matcher m;
+		
+		for(String line : depStatsLines){
+			if((m=DEP_STATS_INTRO_PATT.matcher(line)).matches()){
+				String depTypeName = m.group(1);
+				depTypeName = depTypeNameConvertMap.get(depTypeName);
+				deptypedatamap.put(depTypeName, line);				
+			}
+		}		
+	}
+	
 	/**
 	 * Creates parent-first (left-right) probability.
 	 * E.g.
@@ -294,15 +385,17 @@ public class Dep {
 		//read data in from file
 		List<String> lines = StoryUtils.readLinesFromFile(fileStr, charset);
 		
-		
 		Matcher m;
 		String depTypeName;
 		
 		for(String line : lines){
 			
+			if(StoryUtils.WHITE_EMPTY_SPACE_PATT.matcher(line).matches()){
+				continue;
+			}
 			boolean probAdded = false;
 			boolean distAdded = false;
-			if((m=DEP_STATS_PAT.matcher(line)).matches()){
+			if((m=DEP_STATS_PATT.matcher(line)).matches()){
 				depTypeName = m.group(1);
 				int prob = Integer.parseInt(m.group(2));
 				String leftRightStr = m.group(3);
@@ -321,14 +414,18 @@ public class Dep {
 					distAdded = true;
 				}
 			}
-			
+			System.out.println("Dep - line \""+line +"\""+StoryUtils.WHITE_EMPTY_SPACE_PATT.matcher(line).matches());
 			if(!probAdded || !distAdded){
 				throw new IllegalArgumentException("leftRightDataString must contain ordering data");
 			}	
-		}
-		
+		}		
 	}
 
+	public static String normalizeDepTypeName(String name){
+		String convertedName = depTypeNameConvertMap.get(name);
+		return null == convertedName ? name : convertedName;
+	}
+	
 	public Pos parentPos() {
 		return parentPos;
 	}

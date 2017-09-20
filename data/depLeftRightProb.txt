@@ -10,8 +10,6 @@
 
 <p>3160 instances of <code>advcl</code> (75%) are left-to-right (parent precedes child). Average distance between parent and child is 6.97147611124317.</p>
 
-<p>9981 instances of <code>amod</code> (97%) are right-to-left (child precedes parent). Average distance between parent and child is 1.39104303993796.</p>
-
 <p>1696 instances of <code>appos</code> (97%) are left-to-right (parent precedes child). Average distance between parent and child is 3.67469879518072.</p>
 
 <p>7243 instances of <code>aux</code> (100%) are right-to-left (child precedes parent). Average distance between parent and child is 1.71078701155751.</p>
@@ -64,9 +62,7 @@
 
 <p>534 instances of <code>list</code> (100%) are left-to-right (parent precedes child). Average distance between parent and child is 8.18283582089552.</p>
 
-
 <p>8257 instances of <code>mark</code> (100%) are right-to-left (child precedes parent). Average distance between parent and child is 2.48045030867934.</p>
-
 
 <p>107 instances of <code>nmod:npmod</code> (69%) are left-to-right (parent precedes child). Average distance between parent and child is 2.67948717948718.</p>
 

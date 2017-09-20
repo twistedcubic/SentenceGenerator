@@ -144,23 +144,30 @@ public class Pos {
 			}
 
 			public PosType getPosType() {
-				switch(this) {
+				/*switch(this) {
 				case VERB:
 					return PosType.VERB;
 				default:
 					//better default!?
 					return PosType.NONE;
-				}
+				}*/
+				return PosType.valueOf(this.name());
 			}
 			
 			public static PosTypeName getTypeFromName(String posTypeName) {
-				switch(posTypeName) {
+				try{
+					return PosTypeName.valueOf(posTypeName);
+				}catch(IllegalArgumentException e){
+					return PosTypeName.NONE;
+				}
+				
+				/*switch(posTypeName) {
 				case "VERB":
 					return VERB;
 				default:
 					//better default!?
 					return NONE;
-				}
+				}*/
 			}
 		}/*end of PosTypeName enum*/
 		
@@ -252,12 +259,13 @@ public class Pos {
 		}
 		
 		public PosTypeName posTypeName() {
-			switch(this) {
+			/*switch(this) {
 			case VERB:
 				return PosTypeName.VERB;
 			default:
 				return PosTypeName.NONE;
-			}
+			}*/
+			return PosTypeName.getTypeFromName(this.name());
 		}
 		
 	}/*End of PosType enum*/

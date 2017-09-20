@@ -10,6 +10,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import story.Pos;
 import story.Pos.PosType;
@@ -22,6 +23,7 @@ import story.Pos.PosType.PosTypeName;
  */
 public class StoryUtils {
 
+	public static Pattern WHITE_EMPTY_SPACE_PATT = Pattern.compile("\\s*");
 	/**
 	 * Wrapper around list where each successive element 
 	 * is guaranteed to be larger, for binary search suited
@@ -32,7 +34,7 @@ public class StoryUtils {
 		List<T> list;
 		
 		public SearchableList(List<T> list_) {
-			if(null == list) {
+			if(null == list_) {
 				throw new IllegalArgumentException("List cannot be null.");
 			}
 			this.list = list_;

@@ -86,9 +86,11 @@ public class Story {
 	private static Map<PosTypeName, SearchableList<Integer>> processSearchablePreMap(Map<PosTypeName, 
 			List<Integer>> preMap) {
 		
-		Map<PosTypeName, SearchableList<Integer>> searchableListMap = new HashMap<PosTypeName, SearchableList<Integer>>();
+		Map<PosTypeName, SearchableList<Integer>> searchableListMap 
+			= new HashMap<PosTypeName, SearchableList<Integer>>();
 		
 		for(Map.Entry<PosTypeName, List<Integer>> entry : preMap.entrySet()) {
+			System.out.println("Story - entry "+entry.toString());
 			List<Integer> probList = entry.getValue();
 			for(int i = 1; i < probList.size(); i++) {
 				probList.set(i, probList.get(i-1) + probList.get(i));
