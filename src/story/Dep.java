@@ -1,6 +1,7 @@
 package story;
 
 import java.nio.charset.Charset;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,12 @@ public class Dep {
 	private static final Pattern DEP_STATS_INTRO_PATT 
 		= Pattern.compile(".+speech are connected with <code>(.+)</code>:.+");
 	
+	//<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances).
+	private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
+			//pattern used to extract parent-child relations. 3 groups.
+	private static Pattern DEP_PATTERN 
+				= Pattern.compile(".+en-pos/(.+)</a>(?:.+)pos/(.+)</a>(?:.+);\\s*([\\d]+)% instance.+");			
+			
 	private static final Map<String, String> depTypeNameConvertMap;
 	private static final Map<String, String> depTypeNameConvertReverseMap;
 	
@@ -162,13 +169,7 @@ public class Dep {
 		//acl:relcl -> aclrelcl case->pre cc:preconj compound:prt  det:predet
 		//nmod:npmod nmod:poss nmod:tmod
 		//handle exceptions triggered by "" !
-		NONE("");
-		
-		//<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances).
-		private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
-		//pattern used to extract parent-child relations. 3 groups.
-		private static Pattern DEP_PATTERN 
-			= Pattern.compile(".+en-pos/(.+)</a>(?:.+)pos/(.+)</a>(?:.+);\\s*([\\d]+)% instance.+");
+		NONE("");		
 		
 		//probability map for parent-child relations
 		//where parent pos are keys.
@@ -192,17 +193,35 @@ public class Dep {
 		private int parentFirstProb;
 		
 		private DepType(String depTypeName) {
+			//System.out.println("Dep - depTypeName "+depTypeName);
+			
+			if("".equals(depTypeName)){
+				//use placeholder constants
+				this.parentFirstProb = 1;
+				this.parentChildDist = 1;
+				
+				//create maps for possible pos pairs for this DepType
+				parentChildMMap = ArrayListMultimap.create();
+				childParentMMap = ArrayListMultimap.create();
+				
+				parentChildTotalProbMap = Collections.emptyMap();
+				childParentTotalProbMap = Collections.emptyMap();
+				return;
+			}
 			
 			String mmapDataString = depTypeDataMap.get(depTypeName);
 			Integer leftRightProb = leftRightProbMap.get(depTypeName);
 			Double depDist = childDistMap.get(depTypeName);
 			
 			if(null == mmapDataString || null == leftRightProb || null == depDist) {
+				
+				System.out.println("Dep - depTypeName "+depTypeName+" "
+						+leftRightProb + " "+depDist);
 				throw new IllegalArgumentException("data string for DepType cannot be null.");
 			}
 			
 			//extract distance from data		
-			this.parentFirstProb = leftRightProb;			
+			this.parentFirstProb = leftRightProb;
 			this.parentChildDist = depDist;
 			
 			//create maps for possible pos pairs for this DepType
@@ -210,7 +229,7 @@ public class Dep {
 			childParentMMap = ArrayListMultimap.create();
 			
 			parentChildTotalProbMap = new HashMap<PosTypeName, Integer>();
-			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();;
+			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();
 			createDepMMaps(mmapDataString, parentChildMMap, childParentMMap,
 					parentChildTotalProbMap, childParentTotalProbMap);			
 			
@@ -248,6 +267,7 @@ public class Dep {
 				Multimap<PosTypeName, PosProbPair> childParentMMap, Map<PosTypeName, Integer> parentChildTotalProbMap, 
 				Map<PosTypeName, Integer> childParentTotalProbMap) {
 			//separate by comma 
+			//System.out.println("COMMA_SEP_PATTERN "+COMMA_SEP_PATTERN);
 			String[] dataStringAr = COMMA_SEP_PATTERN.split(dataString);
 			String parent;
 			String child;
@@ -266,6 +286,7 @@ public class Dep {
 						
 						prob = Integer.parseInt(m.group(3));
 						
+						//System.out.println("Dep - parentChildTotalProbMap "+parentChildTotalProbMap);
 						int parentTotalSoFar;
 						int childTotalSoFar;
 						Integer parentTotal = parentChildTotalProbMap.get(parentTypeName);
@@ -278,7 +299,8 @@ public class Dep {
 						
 						Integer childTotal = childParentTotalProbMap.get(childTypeName);
 						if(null != childTotal) {
-							childTotalSoFar = parentTotal+prob;
+							//System.out.println("Dep - parentTypeName childTypeName "+parentTypeName + " "+childTypeName);
+							childTotalSoFar = childTotal+prob;
 						}else {
 							childTotalSoFar = prob;							
 						}
@@ -367,8 +389,7 @@ public class Dep {
 		for(String line : depStatsLines){
 			if((m=DEP_STATS_INTRO_PATT.matcher(line)).matches()){
 				String depTypeName = m.group(1);
-				depTypeName = depTypeNameConvertMap.get(depTypeName);
-				deptypedatamap.put(depTypeName, line);				
+				deptypedatamap.put(Dep.normalizeDepTypeName(depTypeName), line);				
 			}
 		}		
 	}
@@ -397,6 +418,7 @@ public class Dep {
 			boolean distAdded = false;
 			if((m=DEP_STATS_PATT.matcher(line)).matches()){
 				depTypeName = m.group(1);
+				depTypeName = normalizeDepTypeName(depTypeName);
 				int prob = Integer.parseInt(m.group(2));
 				String leftRightStr = m.group(3);
 				
@@ -414,7 +436,8 @@ public class Dep {
 					distAdded = true;
 				}
 			}
-			System.out.println("Dep - line \""+line +"\""+StoryUtils.WHITE_EMPTY_SPACE_PATT.matcher(line).matches());
+			//System.out.println("Dep - line \""+line +"\""+DEP_STATS_PATT.matcher(line).matches()+" "
+				//+AVG_DIST_PATTERN.matcher(line).matches());
 			if(!probAdded || !distAdded){
 				throw new IllegalArgumentException("leftRightDataString must contain ordering data");
 			}	

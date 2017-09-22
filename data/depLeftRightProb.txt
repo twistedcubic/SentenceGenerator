@@ -36,7 +36,7 @@
 
 <p>26 instances of <code>csubjpass</code> (96%) are left-to-right (parent precedes child). Average distance between parent and child is 5.55555555555556.</p>
 
-<p>8 instances of <code>dep</code> (80%) are left-to-right (parent precedes child). Average distance between parent and child is 4.2.</p>
+<p>8 instances of <code>dep</code> (80%) are left-to-right (parent precedes child). Average distance between parent and child is 4.20.</p>
 
 <p>186 instances of <code>det:predet</code> (100%) are right-to-left (child precedes parent). Average distance between parent and child is 2.46774193548387.</p>
 
@@ -44,7 +44,7 @@
 
 <p>615 instances of <code>discourse</code> (75%) are right-to-left (child precedes parent). Average distance between parent and child is 3.94545454545455.</p>
 
-<p>2 instances of <code>dislocated</code> (100%) are right-to-left (child precedes parent). Average distance between parent and child is 8.5.</p>
+<p>2 instances of <code>dislocated</code> (100%) are right-to-left (child precedes parent). Average distance between parent and child is 8.50.</p>
 
 <p>604 instances of <code>expl</code> (90%) are right-to-left (child precedes parent). Average distance between parent and child is 1.51047904191617.</p>
 

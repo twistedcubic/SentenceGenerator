@@ -1,6 +1,7 @@
 package story;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -39,7 +40,7 @@ public class Pos {
 		= Pattern.compile(".+en-dep/(.+)</a>(?:.+);\\s*([\\d]+)% inst.+");
 	//<p><code>VERB</code> nodes are attached to their parents using 32 different relations:
 	//4 groups
-	private static final Pattern DEP_INTRO_PATTERN = Pattern.compile("(.+)<code>(.+)</code> nodes are attached (.+):(.+)");
+	private static final Pattern DEP_INTRO_PATTERN = Pattern.compile("(.+)<code>(.+)</code> nodes are attached (.+?):(.+)");
 	
 	private static final Map<PosTypeName, List<DepTypeProbPair>> parentDepTypePairListMap;
 	private static final Map<PosTypeName, List<DepTypeProbPair>> childDepTypePairListMap;	
@@ -191,9 +192,18 @@ public class Pos {
 			
 			parentDepTypePairList = parentDepTypePairListMap.get(posTypeName);
 			childDepTypePairList = childDepTypePairListMap.get(posTypeName);
-			isRootProb = rootProbMap.get(posTypeName);
+			//System.out.println("constructing for posTypeName "+posTypeName);
+			//System.out.println("rootProbMap "+rootProbMap);
+			Integer rootProb = rootProbMap.get(posTypeName);
+			if(null == rootProb){
+				isRootProb = 0;
+			}else{
+				isRootProb = rootProb;
+			}
+			//need to add up total prob from parentDepTypePairListMap!
+			//chosenMap.put(PosTypeName.getTypeFromName(posNameStr), probPairList);
+			
 		}
-		
 		
 		/**
 		 * Obtain a target DepType based on prob maps for given posType, get either parent or child
@@ -206,6 +216,7 @@ public class Pos {
 			
 			PosType posType = pos.posType;
 			int totalProb = posParentChildType == PosPCType.PARENT ? posType.childTotalProb : posType.parentTotalProb;
+			System.out.println("Pos totalProb "+pos + " "+totalProb);
 			//get the range over all possible pos value Map<DepType, Integer> parentDepTypeMap
 			List<DepTypeProbPair> depTypeList = posParentChildType == PosPCType.PARENT ? posType.parentDepTypePairList
 					: posType.childDepTypePairList;
@@ -284,11 +295,11 @@ public class Pos {
 	 * Creates map for statistics for all pos.
 	 * DataString e.g. <a href="">en-dep/xcomp</a> (2502; 10% instances)
 	 * @param dataString
-	 * @param parentDepTypeMapList maps for relations to parent and children
-	 * @param childDepTypeMapList
+	 * @param parentDepTypeListMap maps for relations to parent and children
+	 * @param childDepTypeListMap
 	 */
-	private static void createPosStatsMap(String fileStr, Map<PosTypeName, List<DepTypeProbPair>> parentDepTypeMapList,
-			Map<PosTypeName, List<DepTypeProbPair>> childDepTypeMapList,
+	private static void createPosStatsMap(String fileStr, Map<PosTypeName, List<DepTypeProbPair>> parentDepTypeListMap,
+			Map<PosTypeName, List<DepTypeProbPair>> childDepTypeListMap,
 			Map<PosTypeName, Integer> rootProbMap) {
 		
 		if(null == fileStr) {
@@ -304,9 +315,9 @@ public class Pos {
 				String posNameStr = introMatcher.group(2);
 				Map<PosTypeName, List<DepTypeProbPair>> chosenMap;
 				if(introMatcher.group(3).contains("parents")){
-					chosenMap = parentDepTypeMapList;
+					chosenMap = parentDepTypeListMap;
 				}else{
-					chosenMap = childDepTypeMapList;
+					chosenMap = childDepTypeListMap;
 				}
 				
 				List<DepTypeProbPair> probPairList = new ArrayList<DepTypeProbPair>();
@@ -319,14 +330,15 @@ public class Pos {
 				DepType depType;
 				int totalProb = 0;
 				
+				//System.out.println("dataAr "+Arrays.toString(dataAr));
 				for(String s : dataAr) {
 					if((m=DEP_PATTERN.matcher(s)).matches()) {
 						//e.g. "nsubj", or "root"
 						depTypeStr = m.group(1);
-						
+						//System.out.println("Dep.DepType.getTypeFromName(depTypeStr) "+depTypeStr+" "+Dep.DepType.getTypeFromName(depTypeStr));
 						if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
 							prob = Integer.parseInt(m.group(2));
-						
+							//System.out.println("depTypeStr "+depTypeStr);
 							if("root".equals(depTypeStr)) {
 								rootProbMap.put(PosTypeName.getTypeFromName(posNameStr), prob);
 								//this.isRootProb = prob;
@@ -569,5 +581,9 @@ public class Pos {
 	
 	public PosType posType() {
 		return this.posType;
+	}
+	
+	public String toString(){
+		return this.posType.toString();
 	}
 }
