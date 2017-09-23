@@ -232,6 +232,7 @@ public class Dep {
 			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();
 			createDepMMaps(mmapDataString, parentChildMMap, childParentMMap,
 					parentChildTotalProbMap, childParentTotalProbMap);			
+			System.out.println("parentChildTotalProbMap for: "+depTypeName+" "+parentChildTotalProbMap );
 			
 		}
 	
@@ -285,7 +286,7 @@ public class Dep {
 							&& (childTypeName=PosTypeName.getTypeFromName(child)) != PosTypeName.NONE) {
 						
 						prob = Integer.parseInt(m.group(3));
-						
+						prob = prob == 0 ? 1 : prob;
 						//System.out.println("Dep - parentChildTotalProbMap "+parentChildTotalProbMap);
 						int parentTotalSoFar;
 						int childTotalSoFar;
@@ -334,6 +335,9 @@ public class Dep {
 			if(posProbPairList.isEmpty()){
 				return PosType.NONE;
 			}
+			System.out.println("posType "+posType);
+			System.out.println("parentChildTotalProbMap "+parentChildTotalProbMap);
+			System.out.println("childParentTotalProbMap "+childParentTotalProbMap);
 			
 			int totalProb = totalProbMap.get(posType.posTypeName());
 			//+1 since nextInt excludes last number. make into constant.
@@ -350,7 +354,7 @@ public class Dep {
 		private int selectRandomMatchingPosSearch(int targetProb, int lowerIndex, int upperIndex,
 				List<PosProbPair> posProbPairList){
 			
-			if(lowerIndex + 1 == upperIndex){
+			if(lowerIndex + 1 >= upperIndex){
 				return upperIndex;
 			}
 			int midIndex = (lowerIndex + upperIndex)/2;

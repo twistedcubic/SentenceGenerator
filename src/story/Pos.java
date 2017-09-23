@@ -82,8 +82,13 @@ public class Pos {
 		this.posType = posType_;		
 	}
 	
+	/**
+	 * posParentChildType is the role of *this* pos.
+	 * @param dep
+	 * @param posParentChildType
+	 */
 	public void addDep(Dep dep, PosPCType posParentChildType) {
-		if(posParentChildType == PosPCType.PARENT) {
+		if(posParentChildType == PosPCType.CHILD) {
 			this.parentDep = dep;
 		}else {
 			this.childDepList.add(dep);
@@ -100,7 +105,7 @@ public class Pos {
 		ADP(PosTypeName.ADP),
 		ADV(PosTypeName.ADV),
 		AUX(PosTypeName.AUX),
-		CONJ(PosTypeName.CONJ),
+		CCONJ(PosTypeName.CCONJ),
 		DET(PosTypeName.DET),
 		INTJ(PosTypeName.INTJ),			
 		NOUN(PosTypeName.NOUN),
@@ -123,7 +128,7 @@ public class Pos {
 			ADP("ADP"),
 			ADV("ADV"),
 			AUX("AUX"),
-			CONJ("CONJ"),
+			CCONJ("CCONJ"),
 			DET("DET"),
 			INTJ("INTJ"),			
 			VERB("VERB"),
@@ -170,8 +175,7 @@ public class Pos {
 					return NONE;
 				}*/
 			}
-		}/*end of PosTypeName enum*/
-		
+		}/*end of PosTypeName enum*/		
 		
 		//relations to parents (e.g. nsubj) and their prob (between 0 and 100)
 		//private Map<DepType, Integer> parentDepTypeMap;
@@ -185,23 +189,36 @@ public class Pos {
 		private int isRootProb;
 		
 		private PosType(PosTypeName posTypeName) {
-			//parentDepTypeMap = new HashMap<DepType, Integer>();
-			//childDepTypeMap = new HashMap<DepType, Integer>();		
-			//parentDepTypePairList = new ArrayList<DepTypeProbPair>();
-			//childDepTypePairList = new ArrayList<DepTypeProbPair>();
 			
+			if(posTypeName == PosTypeName.NONE){
+				
+				parentDepTypePairList = Collections.emptyList();
+				childDepTypePairList = Collections.emptyList();
+				parentTotalProb = 100;
+				childTotalProb = 100;
+				return;
+			}
+			
+			System.out.println("constructing for posTypeName "+posTypeName);
 			parentDepTypePairList = parentDepTypePairListMap.get(posTypeName);
 			childDepTypePairList = childDepTypePairListMap.get(posTypeName);
-			//System.out.println("constructing for posTypeName "+posTypeName);
+			//need to add up total prob from parentDepTypePairListMap!
+			//chosenMap.put(PosTypeName.getTypeFromName(posNameStr), probPairList);
+			//int parentProb = 0;
+			for(DepTypeProbPair pair : parentDepTypePairList){
+				parentTotalProb += pair.prob;
+			}
+			for(DepTypeProbPair pair : childDepTypePairList){
+				childTotalProb += pair.prob;
+			}			
+			
 			//System.out.println("rootProbMap "+rootProbMap);
 			Integer rootProb = rootProbMap.get(posTypeName);
 			if(null == rootProb){
 				isRootProb = 0;
 			}else{
 				isRootProb = rootProb;
-			}
-			//need to add up total prob from parentDepTypePairListMap!
-			//chosenMap.put(PosTypeName.getTypeFromName(posNameStr), probPairList);
+			}			
 			
 		}
 		
@@ -359,7 +376,8 @@ public class Pos {
 	}	
 	
 	/**
-	 * create sentence tree given a PosType
+	 * create sentence tree given a PosType. Returns
+	 * that supplied entry pos, *not* root of tree.
 	 * @param posType
 	 */
 	public static Pos createSentenceTree(PosType posType) {
@@ -542,6 +560,9 @@ public class Pos {
 			
 			int randInt = RAND_GEN.nextInt(TOTAL_PROB)+1;
 			Pos childPos = dep.childPos();
+			if(childPos == this){
+				throw new IllegalArgumentException("child pos equal to this!");
+			}
 			String childPosStr = childPos.createSubTreePhrase();
 			
 			if(randInt < parentFirstProb){

@@ -176,7 +176,7 @@ public class Story {
 		//guess pos for the input words using pos tagger, 
 		
 		PosType posType = PosType.VERB;
-		//origin of tree
+		//origin of tree, the supplied entry point, *not* root
 		Pos originPos = Pos.createSentenceTree(posType);
 		//arrange tree into a sentence based on 		
 		String sentence = Pos.arrangePosStr(originPos);
