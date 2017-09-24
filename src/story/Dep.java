@@ -1,6 +1,7 @@
 package story;
 
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +41,8 @@ public class Dep {
 	private static final Map<String, Double> childDistMap;
 	
 	private static final Random RAND_GEN = new Random();
-	private static final int TOTAL_PROB = 100;
+	private static final int TOTAL_PROB_1000 = 1000;
+	private static final int TOTAL_PROB_100 = 100;
 	private static final Pattern AVG_DIST_PATTERN 
 		= Pattern.compile(".+verage distance.+is ([\\d]+\\.[\\d]{2}).+");
 	private static final Pattern DEP_STATS_PATT 
@@ -53,7 +55,7 @@ public class Dep {
 	private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
 			//pattern used to extract parent-child relations. 3 groups.
 	private static Pattern DEP_PATTERN 
-				= Pattern.compile(".+en-pos/(.+)</a>(?:.+)pos/(.+)</a>(?:.+);\\s*([\\d]+)% instance.+");			
+				= Pattern.compile(".+en-pos/(.+)</a>(?:.+)pos/(.+)</a>(?:.+);\\s*([\\d]+)% instance.+");
 			
 	private static final Map<String, String> depTypeNameConvertMap;
 	private static final Map<String, String> depTypeNameConvertReverseMap;
@@ -197,8 +199,8 @@ public class Dep {
 			
 			if("".equals(depTypeName)){
 				//use placeholder constants
-				this.parentFirstProb = 1;
-				this.parentChildDist = 1;
+				this.parentFirstProb = TOTAL_PROB_1000;
+				this.parentChildDist = 3;
 				
 				//create maps for possible pos pairs for this DepType
 				parentChildMMap = ArrayListMultimap.create();
@@ -232,7 +234,7 @@ public class Dep {
 			childParentTotalProbMap = new HashMap<PosTypeName, Integer>();
 			createDepMMaps(mmapDataString, parentChildMMap, childParentMMap,
 					parentChildTotalProbMap, childParentTotalProbMap);			
-			System.out.println("parentChildTotalProbMap for: "+depTypeName+" "+parentChildTotalProbMap );
+			//System.out.println("parentChildTotalProbMap for: "+depTypeName+" "+parentChildTotalProbMap );
 			
 		}
 	
@@ -286,7 +288,8 @@ public class Dep {
 							&& (childTypeName=PosTypeName.getTypeFromName(child)) != PosTypeName.NONE) {
 						
 						prob = Integer.parseInt(m.group(3));
-						prob = prob == 0 ? 1 : prob;
+						//experiment with this constant!
+						prob = prob == 0 ? 3 : prob*10;
 						//System.out.println("Dep - parentChildTotalProbMap "+parentChildTotalProbMap);
 						int parentTotalSoFar;
 						int childTotalSoFar;
@@ -335,9 +338,10 @@ public class Dep {
 			if(posProbPairList.isEmpty()){
 				return PosType.NONE;
 			}
-			System.out.println("posType "+posType);
-			System.out.println("parentChildTotalProbMap "+parentChildTotalProbMap);
-			System.out.println("childParentTotalProbMap "+childParentTotalProbMap);
+			System.out.println("Dep- posType "+posType);
+			//System.out.println(Arrays.toString(Thread.currentThread().getStackTrace()));
+			//System.out.println("parentChildTotalProbMap "+parentChildTotalProbMap);
+			//System.out.println("childParentTotalProbMap "+childParentTotalProbMap);
 			
 			int totalProb = totalProbMap.get(posType.posTypeName());
 			//+1 since nextInt excludes last number. make into constant.
@@ -368,7 +372,10 @@ public class Dep {
 				return upperIndex;
 			}
 		}		
-		
+		/**
+		 * Prob of parent coming first. Out of 100%, not 1000!
+		 * @return
+		 */
 		public int parentFirstProb(){
 			return this.parentFirstProb;
 		}
@@ -424,13 +431,15 @@ public class Dep {
 				depTypeName = m.group(1);
 				depTypeName = normalizeDepTypeName(depTypeName);
 				int prob = Integer.parseInt(m.group(2));
+				//scale up 
+				//prob *= 10;
 				String leftRightStr = m.group(3);
 				
 				if(leftRightStr.contains("left-to-right")){
 					leftRightProbMap.put(depTypeName, prob);
 					probAdded = true;
 				}else if(leftRightStr.contains("right-to-left")){
-					leftRightProbMap.put(depTypeName, TOTAL_PROB - prob);
+					leftRightProbMap.put(depTypeName, TOTAL_PROB_100 - prob);
 					probAdded = true;
 				}
 				//these two need to be on same line, so know which dep is being referred to
@@ -465,6 +474,11 @@ public class Dep {
 		return this.depType;
 	}
 	
+	@Override
+	public String toString() {
+		return "{"+depType + " " + parentPos + " " + childPos + "}";
+	}
+	
 	/**
 	 * Pos and probability pair, used as value in 
 	 * childParentMap or parentChildMap.
@@ -473,7 +487,7 @@ public class Dep {
 		//the pos in the value of the map, could be parent
 		//or child.
 		PosTypeName posTypeName;
-		//probability as a number between 0 and 100.
+		//probability as a number between 0 and 1000.
 		int prob;
 		
 		PosProbPair(PosTypeName posTypeN_, int prob_){

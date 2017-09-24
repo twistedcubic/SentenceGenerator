@@ -24,6 +24,9 @@ import story.Pos.PosType.PosTypeName;
 public class StoryUtils {
 
 	public static Pattern WHITE_EMPTY_SPACE_PATT = Pattern.compile("\\s*");
+	public static Pattern WHITE_NON_EMPTY_SPACE_PATT = Pattern.compile("\\s+");
+	public static Pattern SURROUNDING_SPACE_PATT = Pattern.compile("^\\s*(.+?)\\s*$");
+	
 	/**
 	 * Wrapper around list where each successive element 
 	 * is guaranteed to be larger, for binary search suited
@@ -96,6 +99,10 @@ public class StoryUtils {
 			return list.get(targetIndex);
 		}
 		
+		@Override
+		public String toString() {
+			return this.list.toString();
+		}		
 	}
 	
 	public static List<String> readLinesFromFile(String fileStr , Charset... charsetAr){

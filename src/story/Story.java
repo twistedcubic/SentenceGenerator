@@ -10,7 +10,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ListMultimap;
+import com.google.common.collect.SetMultimap;
 
 import story.Pos.PosType;
 import story.Pos.PosType.PosTypeName;
@@ -34,13 +36,16 @@ public class Story {
 	private static final Map<PosTypeName, SearchableList<Integer>> posTypePCProbMap; 
 	private static final Pattern PC_TYPE_PATTERN = Pattern.compile("<p>.+\\((\\d+)%\\)\\s*<code>(.+)</code> nodes (.+)");
 	private static final String PLACEHOLDER_WORD = "PC";
+	private static final Pattern LAST_TOK_PATT = Pattern.compile("\\s+(?=([^\\s]+$))");
+	
 	private static final int TOTAL_PROB = 100;
 	
 	static {
 		POS_WORD_MAP = ArrayListMultimap.create();
 		//should create from file
-		
-		fillPosWordMap(POS_WORD_MAP);
+		/*contains pairs of form e.g. apple noun. Note lower case pos.*/
+		String lexiconPath = "data/lexicon.txt";
+		createLexicon(POS_WORD_MAP, lexiconPath);
 		
 		//fill map from data sources
 		
@@ -72,10 +77,49 @@ public class Story {
 		}
 	}
 	
-	private static void fillPosWordMap(ListMultimap<PosTypeName, String> POS_WORD_MAP){
-		for(PosTypeName posTypeName : PosTypeName.values()){
-			POS_WORD_MAP.put(posTypeName, "word");
+	private static void createLexicon(ListMultimap<PosTypeName, String> posWordLexiconMMap,
+			String lexiconPath){
+		
+		SetMultimap<PosTypeName, String> lexiconSetMMap = HashMultimap.create();
+		
+		List<String> lines = StoryUtils.readLinesFromFile(lexiconPath);
+		Matcher m;
+		/*lines are of the form "apple noun", where last token indicates pos. Could
+		 * be n-gram.*/
+		for(String line : lines) {
+			//strip surrounding spaces
+			if((m = StoryUtils.SURROUNDING_SPACE_PATT.matcher(line)).matches()) {
+				line = m.group(1);
+			}
+			String[] lineAr = LAST_TOK_PATT.split(line);
+			if(lineAr.length < 2) {
+				continue;
+			}
+			PosTypeName posTypeName = PosTypeName.getTypeFromName(lineAr[1].toUpperCase());
+			if(posTypeName != PosTypeName.NONE) {
+				lexiconSetMMap.put(posTypeName, lineAr[0]);				
+			}else {
+				throw new IllegalArgumentException(line + " classified as posTypeName.NONE");
+			}
 		}
+		for(PosTypeName posTypeName : lexiconSetMMap.keys()) {
+			posWordLexiconMMap.putAll(posTypeName, lexiconSetMMap.get(posTypeName));
+		}
+		
+		/*posWordLexiconMMap.put(PosTypeName.VERB, "fly");
+		posWordLexiconMMap.put(PosTypeName.VERB, "have");
+		posWordLexiconMMap.put(PosTypeName.AUX, "be");
+		posWordLexiconMMap.put(PosTypeName.AUX, "is");
+		posWordLexiconMMap.put(PosTypeName.SYM, "!");
+		posWordLexiconMMap.put(PosTypeName.SYM, ",");
+		
+		posWordLexiconMMap.put(PosTypeName.NOUN, "apple");
+		posWordLexiconMMap.put(PosTypeName.PRON, "she");
+		posWordLexiconMMap.put(PosTypeName.ADV, "quickly");
+		
+		for(PosTypeName posTypeName : PosTypeName.values()){
+			posWordLexiconMMap.put(posTypeName, posTypeName.name());			
+		}*/
 		
 	}
 	
@@ -90,7 +134,7 @@ public class Story {
 			= new HashMap<PosTypeName, SearchableList<Integer>>();
 		
 		for(Map.Entry<PosTypeName, List<Integer>> entry : preMap.entrySet()) {
-			System.out.println("Story - entry "+entry.toString());
+			//System.out.println("Story - entry "+entry.toString());
 			List<Integer> probList = entry.getValue();
 			for(int i = 1; i < probList.size(); i++) {
 				probList.set(i, probList.get(i-1) + probList.get(i));
@@ -175,7 +219,7 @@ public class Story {
 	public static void main(String[] args) {
 		//guess pos for the input words using pos tagger, 
 		
-		PosType posType = PosType.VERB;
+		PosType posType = PosType.NOUN;
 		//origin of tree, the supplied entry point, *not* root
 		Pos originPos = Pos.createSentenceTree(posType);
 		//arrange tree into a sentence based on 		

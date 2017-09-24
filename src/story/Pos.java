@@ -33,7 +33,8 @@ public class Pos {
 	private static final Map<String, String> parentPosTypeDataMap;
 	private static final Map<String, String> childPosTypeDataMap;
 	private static final Random RAND_GEN = new Random();
-	private static final int TOTAL_PROB = 100;
+	private static final int TOTAL_PROB_1000 = 1000;
+	private static final int TOTAL_PROB_100 = 100;
 	private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
 	//pattern used to extract parent-child relations. 2 groups.
 	private static Pattern DEP_PATTERN 
@@ -194,30 +195,35 @@ public class Pos {
 				
 				parentDepTypePairList = Collections.emptyList();
 				childDepTypePairList = Collections.emptyList();
-				parentTotalProb = 100;
-				childTotalProb = 100;
+				parentTotalProb = TOTAL_PROB_1000;
+				childTotalProb = TOTAL_PROB_1000;
 				return;
 			}
 			
-			System.out.println("constructing for posTypeName "+posTypeName);
+			//System.out.println("constructing for posTypeName "+posTypeName);
 			parentDepTypePairList = parentDepTypePairListMap.get(posTypeName);
 			childDepTypePairList = childDepTypePairListMap.get(posTypeName);
 			//need to add up total prob from parentDepTypePairListMap!
 			//chosenMap.put(PosTypeName.getTypeFromName(posNameStr), probPairList);
 			//int parentProb = 0;
-			for(DepTypeProbPair pair : parentDepTypePairList){
+			/*for(DepTypeProbPair pair : parentDepTypePairList){
 				parentTotalProb += pair.prob;
-			}
-			for(DepTypeProbPair pair : childDepTypePairList){
+			}*/
+			/*These prob are arranged in increasing order, ie cumulative probabilities*/
+			parentTotalProb = parentDepTypePairList.get(parentDepTypePairList.size()-1).prob;
+			
+			/*for(DepTypeProbPair pair : childDepTypePairList){
 				childTotalProb += pair.prob;
-			}			
+			}*/
+			childTotalProb = childDepTypePairList.get(childDepTypePairList.size()-1).prob;
 			
 			//System.out.println("rootProbMap "+rootProbMap);
 			Integer rootProb = rootProbMap.get(posTypeName);
 			if(null == rootProb){
 				isRootProb = 0;
 			}else{
-				isRootProb = rootProb;
+				//out of 1000 currently
+				isRootProb = rootProb*10;
 			}			
 			
 		}
@@ -226,7 +232,7 @@ public class Pos {
 		 * Obtain a target DepType based on prob maps for given posType, get either parent or child
 		 * type.
 		 * @param posType
-		 * @param posParentChildType Whether posType should be taken as parent or child.
+		 * @param posParentChildType Whether supplied posType *should be taken* as parent or child.
 		 * @return
 		 */
 		public static List<DepType> selectRandomDepType(Pos pos, PosPCType posParentChildType) {
@@ -235,43 +241,47 @@ public class Pos {
 			int totalProb = posParentChildType == PosPCType.PARENT ? posType.childTotalProb : posType.parentTotalProb;
 			System.out.println("Pos totalProb "+pos + " "+totalProb);
 			//get the range over all possible pos value Map<DepType, Integer> parentDepTypeMap
-			List<DepTypeProbPair> depTypeList = posParentChildType == PosPCType.PARENT ? posType.parentDepTypePairList
-					: posType.childDepTypePairList;
+			List<DepTypeProbPair> depTypeList = posParentChildType == PosPCType.PARENT ?  posType.childDepTypePairList
+					: posType.parentDepTypePairList;
 			
-			List<DepType> dTList = new ArrayList<DepType>();
-			
+			List<DepType> dTList = new ArrayList<DepType>();			
 			
 			int numDepType;
 			if(posParentChildType == PosPCType.CHILD) {
 				numDepType = 1;
 			}else {
-				int randInt = RAND_GEN.nextInt(100)+1;
+				//don't add 1, since PCProbMap goes from 0 to 99
+				int randInt = RAND_GEN.nextInt(TOTAL_PROB_100);
 				//generate based on stats
 				SearchableList<Integer> pcProbList = Story.posTypePCProbMap().get(posType.posTypeName());
+				/*index is the bracket for number of children: 0 means leaves (0 child)
+				  1 means 1 child, 2 means 2, 3 means 3 children. */
 				int index = pcProbList.listBinarySearch(randInt);
-				numDepType = pcProbList.getTargetElem(index);
+				//numDepType = pcProbList.getTargetElem(index);
 				//count number of existing children
-				numDepType = numDepType - pos.childDepList.size();
+				numDepType = index - pos.childDepList.size();
 			}
 			
 			for(int i = 0; i < numDepType; i++) {
-				int randInt = RAND_GEN.nextInt(totalProb)+1;		
+				//don't add 1 since prob starts at 0
+				int randInt = RAND_GEN.nextInt(totalProb);		
 				//use binary search to find the right interval,
-				//map already sorted according to 
-				
+				//map already sorted according to 				
 				int targetIndex = selectRandomDepTypeSearch(randInt, 0, depTypeList.size()-1, depTypeList);
+				
+				//-1 since the upper bound is returned, rather than lower bound
+				//targetIndex = targetIndex == 0 ? targetIndex : targetIndex - 1; 
 				dTList.add(depTypeList.get(targetIndex).depType);
 			}
 			
-			return dTList;
-			
+			return dTList;			
 		}
 		
 		public static int selectRandomDepTypeSearch(int targetProb, int lowerIndex, int upperIndex, 
 				List<DepTypeProbPair> depTypePairList) {
 			
 			if(lowerIndex + 1 == upperIndex){
-				return upperIndex;
+				return lowerIndex;
 			}
 			int midIndex = (lowerIndex + upperIndex)/2;
 			int midIndexProb = depTypePairList.get(midIndex).prob;
@@ -305,6 +315,11 @@ public class Pos {
 		public DepTypeProbPair(DepType depType_, int prob_) {
 			this.depType = depType_;
 			this.prob = prob_;
+		}
+		
+		@Override
+		public String toString() {
+			return "{" + depType + " " + prob + "}";
 		}
 	}/**/
 	
@@ -361,7 +376,8 @@ public class Pos {
 								//this.isRootProb = prob;
 							}
 							//some data have 0 prob because low occurrence.
-							prob = prob > 0 ? prob : 1;
+							//experiment with this constant!!
+							prob = prob == 0 ? 3 : prob*10;
 							totalProb += prob;
 							//depTypeMap.put(depType, totalProb);
 							probPairList.add(new DepTypeProbPair(depType, totalProb));							
@@ -383,7 +399,8 @@ public class Pos {
 	public static Pos createSentenceTree(PosType posType) {
 
 		//create a pos with that Type
-		Pos pos = new Pos(posType);		
+		Pos pos = new Pos(posType);
+		pos.posWord = Story.getRandomWord(posType);
 		growTree(pos);
 		return pos;
 	}
@@ -395,7 +412,7 @@ public class Pos {
 	private static void growTree(Pos pos) {
 		
 		PosType posType = pos.posType;
-		pos.posWord = Story.getRandomWord(posType);
+		
 		//not mutually exclusive!
 		//PosPCType parentChildType = PosPCType.generateRandType();
 		
@@ -404,12 +421,14 @@ public class Pos {
 		if(getParentBool) {
 			//create Dep with randomly generated DepType
 			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.CHILD);
+			System.out.println("Pos - parent depTypeList "+depTypeList);
 			
 			if(!depTypeList.isEmpty()) {
 				
 				DepType depType = depTypeList.get(0);
 				//this is for child
 				PosType matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.CHILD);		
+				
 				//create Dep from DepType
 				//Pos parentPos_, Pos childPos_, DepType depType_
 				Pos childPos;
@@ -424,6 +443,8 @@ public class Pos {
 					childPos = pos;	
 					parentPos.distToOrigin = pos.distToOrigin + 1;
 					parentPos.posWord = Story.getRandomWord(matchingPosType);
+					System.out.println("randomly selected child matchingPosType: "+matchingPosType + " FOR " + depType
+							+ " WORD " + parentPos.posWord);	
 				//}	*/
 				
 				Dep dep = new Dep(depType, parentPos, childPos);
@@ -440,11 +461,16 @@ public class Pos {
 		//get_child takes into account e.g. how far from Pos originator. how many children already, etc
 		if(getChildBool) {
 			//create Dep with randomly generated DepType
+			if(posType == PosType.SCONJ) {
+				System.out.println("sconj!");
+			}
 			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.PARENT);
-			
+			System.out.println("Pos - children depTypeList "+depTypeList);
 			for(DepType depType : depTypeList) {
 				//this is for child
-				PosType matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);		
+				PosType matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);
+				
+				
 				//create Dep from DepType
 				//Pos parentPos_, Pos childPos_, DepType depType_
 				Pos childPos;
@@ -455,6 +481,8 @@ public class Pos {
 					childPos.distToOrigin = pos.distToOrigin + 1;
 					
 					childPos.posWord = Story.getRandomWord(matchingPosType);
+				System.out.println("randomly selected child matchingPosType: "+matchingPosType + " FOR " + depType
+						+ " WORD " + childPos.posWord);
 				/*}/*else {
 					parentPos = new Pos(matchingPosType);			
 					childPos = pos;	
@@ -464,7 +492,6 @@ public class Pos {
 				Dep dep = new Dep(depType, parentPos, childPos);
 				childPos.addDep(dep, PosPCType.CHILD);
 				parentPos.addDep(dep, PosPCType.PARENT);
-				
 				
 				//grow children
 				growTree(childPos);
@@ -491,12 +518,12 @@ public class Pos {
 		}
 		
 		int rootProb = pos.posType.isRootProb;
-		int randInt = RAND_GEN.nextInt(TOTAL_PROB)+1;
+		int randInt = RAND_GEN.nextInt(TOTAL_PROB_1000)+1;
 		
 		if(randInt < rootProb) {
-			return false;
+			return true;
 		}else {
-			return true;			
+			return false;			
 		}
 	}
 	
@@ -516,6 +543,10 @@ public class Pos {
 		//threshold dist to origin
 		final int CHILD_DIST_THRESHOLD = 2;
 		if(pos.distToOrigin >= CHILD_DIST_THRESHOLD) {
+			return false;
+		}
+		
+		if(pos.posType == PosType.PUNCT) {
 			return false;
 		}
 		return true;
@@ -557,8 +588,8 @@ public class Pos {
 		for(Dep dep : this.childDepList) {
 			
 			int parentFirstProb = dep.depType().parentFirstProb();
-			
-			int randInt = RAND_GEN.nextInt(TOTAL_PROB)+1;
+			//System.out.println("~~~~parentFirstProb "+parentFirstProb);
+			int randInt = RAND_GEN.nextInt(TOTAL_PROB_100)+1;
 			Pos childPos = dep.childPos();
 			if(childPos == this){
 				throw new IllegalArgumentException("child pos equal to this!");
@@ -574,7 +605,8 @@ public class Pos {
 				leftSb.insert(0, " ").insert(0, childPosStr);
 			}			
 		}		
-		return leftSb.toString() + this.posWord + " " + rightSb.toString();		
+		this.subTreePhrase = leftSb.toString() + this.posWord + " " + rightSb.toString();
+		return this.subTreePhrase;		
 	}
 	
 	/**
@@ -585,16 +617,22 @@ public class Pos {
 	 */
 	public static String arrangePosStr(Pos originPos) {
 		
+		if(null == originPos) {
+			throw new IllegalArgumentException("originPos cannot be null!");
+		}
 		Pos curPos = originPos;
 		Pos prevPos = curPos;
+		curPos.createSubTreePhrase();
 		
-		while(null != curPos) {
+		Dep parentDep = curPos.parentDep;
+		
+		while(null != parentDep && (curPos = parentDep.parentPos()) != null) {
 			
 			curPos.createSubTreePhrase();
 			prevPos = curPos;
-			Dep parentDep = curPos.parentDep;
+			
+			parentDep = curPos.parentDep;
 			//get the parent
-			curPos = parentDep.parentPos();
 		}
 		
 		return prevPos.subTreePhrase;
