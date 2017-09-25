@@ -78,8 +78,9 @@ public class StoryUtils {
 		 * @return Index in list containing target.
 		 */
 		private int listBinarySearch(T target, int lowerIndex, int upperIndex) {
-			
-			if(lowerIndex+1 == upperIndex) {
+			//return lowerIndex, since the current bracket belongs to lowerIndex.
+			if(lowerIndex+1 >= upperIndex) {
+				//return lowerIndex;
 				return upperIndex;
 			}
 

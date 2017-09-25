@@ -222,8 +222,8 @@ public class Pos {
 			if(null == rootProb){
 				isRootProb = 0;
 			}else{
-				//out of 1000 currently
-				isRootProb = rootProb*10;
+				//out of 100 currently
+				isRootProb = rootProb;
 			}			
 			
 		}
@@ -250,16 +250,19 @@ public class Pos {
 			if(posParentChildType == PosPCType.CHILD) {
 				numDepType = 1;
 			}else {
-				//don't add 1, since PCProbMap goes from 0 to 99
-				int randInt = RAND_GEN.nextInt(TOTAL_PROB_100);
+				// PCProbMap goes from 0 to 100. 
+				int randInt = RAND_GEN.nextInt(TOTAL_PROB_100)+1;
 				//generate based on stats
 				SearchableList<Integer> pcProbList = Story.posTypePCProbMap().get(posType.posTypeName());
 				/*index is the bracket for number of children: 0 means leaves (0 child)
 				  1 means 1 child, 2 means 2, 3 means 3 children. */
 				int index = pcProbList.listBinarySearch(randInt);
-				//numDepType = pcProbList.getTargetElem(index);
+				//subtract 1 because padding of posTypePCList at index 0 for 0 children.
+				index--;
 				//count number of existing children
 				numDepType = index - pos.childDepList.size();
+				//have at least one child if originPos, to avoid empty sentence
+				numDepType = numDepType == 0 && pos.distToOrigin == 0 ? 1 : numDepType;
 			}
 			
 			for(int i = 0; i < numDepType; i++) {
@@ -281,7 +284,8 @@ public class Pos {
 				List<DepTypeProbPair> depTypePairList) {
 			
 			if(lowerIndex + 1 == upperIndex){
-				return lowerIndex;
+				//return lowerIndex;
+				return upperIndex;
 			}
 			int midIndex = (lowerIndex + upperIndex)/2;
 			int midIndexProb = depTypePairList.get(midIndex).prob;
@@ -292,8 +296,7 @@ public class Pos {
 			}else{
 				//since prob starts at 0, so 50% prob occupy 0 through 49 (say).
 				return upperIndex;
-			}
-			
+			}			
 		}
 		
 		public PosTypeName posTypeName() {
@@ -361,6 +364,8 @@ public class Pos {
 				int prob;
 				DepType depType;
 				int totalProb = 0;
+				//initial padding so binary search can return upper index.
+				probPairList.add(new DepTypeProbPair(DepType.NONE, totalProb));
 				
 				//System.out.println("dataAr "+Arrays.toString(dataAr));
 				for(String s : dataAr) {
@@ -373,11 +378,13 @@ public class Pos {
 							//System.out.println("depTypeStr "+depTypeStr);
 							if("root".equals(depTypeStr)) {
 								rootProbMap.put(PosTypeName.getTypeFromName(posNameStr), prob);
+								//root doesn't extend as a dependence relation
+								continue;
 								//this.isRootProb = prob;
 							}
 							//some data have 0 prob because low occurrence.
 							//experiment with this constant!!
-							prob = prob == 0 ? 3 : prob*10;
+							prob = prob == 0 ? 2 : prob*10;
 							totalProb += prob;
 							//depTypeMap.put(depType, totalProb);
 							probPairList.add(new DepTypeProbPair(depType, totalProb));							
@@ -401,6 +408,7 @@ public class Pos {
 		//create a pos with that Type
 		Pos pos = new Pos(posType);
 		pos.posWord = Story.getRandomWord(posType);
+		System.out.println("originPos word: "+pos.posWord);
 		growTree(pos);
 		return pos;
 	}
@@ -470,7 +478,6 @@ public class Pos {
 				//this is for child
 				PosType matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);
 				
-				
 				//create Dep from DepType
 				//Pos parentPos_, Pos childPos_, DepType depType_
 				Pos childPos;
@@ -512,18 +519,18 @@ public class Pos {
 			return false;
 		}
 		//threshold dist to origin
-		final int PARENT_DIST_THRESHOLD = 2;
-		if(pos.distToOrigin >= PARENT_DIST_THRESHOLD) {
+		final int PARENT_DIST_THRESHOLD = 1;
+		if(pos.distToOrigin > PARENT_DIST_THRESHOLD) {
 			return false;
 		}
 		
 		int rootProb = pos.posType.isRootProb;
-		int randInt = RAND_GEN.nextInt(TOTAL_PROB_1000)+1;
+		int randInt = RAND_GEN.nextInt(TOTAL_PROB_100)+1;
 		
-		if(randInt < rootProb) {
-			return true;
+		if(randInt <= rootProb) {
+			return false;
 		}else {
-			return false;			
+			return true;			
 		}
 	}
 	
@@ -542,7 +549,7 @@ public class Pos {
 		}		
 		//threshold dist to origin
 		final int CHILD_DIST_THRESHOLD = 2;
-		if(pos.distToOrigin >= CHILD_DIST_THRESHOLD) {
+		if(pos.distToOrigin > CHILD_DIST_THRESHOLD) {
 			return false;
 		}
 		

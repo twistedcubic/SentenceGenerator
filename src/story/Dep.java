@@ -266,8 +266,8 @@ public class Dep {
 		 * @param parentChildMMap
 		 * @param childParentMMap
 		 */
-		private void createDepMMaps(String dataString, Multimap<PosTypeName, PosProbPair> parentChildMMap, 
-				Multimap<PosTypeName, PosProbPair> childParentMMap, Map<PosTypeName, Integer> parentChildTotalProbMap, 
+		private void createDepMMaps(String dataString, ListMultimap<PosTypeName, PosProbPair> parentChildMMap, 
+				ListMultimap<PosTypeName, PosProbPair> childParentMMap, Map<PosTypeName, Integer> parentChildTotalProbMap, 
 				Map<PosTypeName, Integer> childParentTotalProbMap) {
 			//separate by comma 
 			//System.out.println("COMMA_SEP_PATTERN "+COMMA_SEP_PATTERN);
@@ -276,6 +276,8 @@ public class Dep {
 			String child;
 			int prob;
 			Matcher m;
+			int parentTotalSoFar = 0;
+			int childTotalSoFar = 0;
 			
 			for(String s : dataStringAr) {
 				if( (m = DEP_PATTERN.matcher(s)).matches() ) {
@@ -289,30 +291,48 @@ public class Dep {
 						
 						prob = Integer.parseInt(m.group(3));
 						//experiment with this constant!
-						prob = prob == 0 ? 3 : prob*10;
+						prob = prob == 0 ? 2 : prob*10;
 						//System.out.println("Dep - parentChildTotalProbMap "+parentChildTotalProbMap);
-						int parentTotalSoFar;
-						int childTotalSoFar;
+						
 						Integer parentTotal = parentChildTotalProbMap.get(parentTypeName);
 						if(null != parentTotal) {
-							parentTotalSoFar = parentTotal + prob;							
+							//parentTotalSoFar = parentTotal + prob;
+							parentTotal+=prob;
 						}else {
-							parentTotalSoFar = prob;
+							//initial padding so binary search can return upper index.
+							parentChildMMap.put(parentTypeName, new PosProbPair(PosTypeName.NONE, parentTotalSoFar));
+							//parentTotalSoFar = prob;
+							parentTotal=prob;
 						}
-						parentChildTotalProbMap.put(parentTypeName, parentTotalSoFar);
+						parentTotalSoFar+=prob;
+						parentChildTotalProbMap.put(parentTypeName, parentTotal);
 						
 						Integer childTotal = childParentTotalProbMap.get(childTypeName);
 						if(null != childTotal) {
 							//System.out.println("Dep - parentTypeName childTypeName "+parentTypeName + " "+childTypeName);
-							childTotalSoFar = childTotal+prob;
+							//childTotalSoFar = childTotal+prob;
+							childTotal += prob;
 						}else {
-							childTotalSoFar = prob;							
+							//childTotalSoFar = prob;		
+							//initial padding so binary search can return upper index.
+							childParentMMap.put(childTypeName, new PosProbPair(PosTypeName.NONE, 0));
+							childTotal = prob;
 						}
-						childParentTotalProbMap.put(childTypeName, childTotalSoFar);
+						childTotalSoFar += prob;
+						childParentTotalProbMap.put(childTypeName, childTotal);
 						
-						//the prob in input dataStrings are already sorted.
+						//the prob in input dataStrings are already sorted in decreasing prob <- not that matters.
+						//List<PosProbPair> parentChildProbSoFarList = parentChildMMap.get(parentTypeName);
+						//already added 0-indexed padding
+						//int parentChildProbSoFar = parentChildProbSoFarList.get(parentChildProbSoFarList.size()-1).prob;
 						parentChildMMap.put(parentTypeName, new PosProbPair(childTypeName, childTotalSoFar));
-						childParentMMap.put(childTypeName, new PosProbPair(parentTypeName, parentTotalSoFar));						
+						
+						//the prob in input dataStrings are already sorted in decreasing prob <- not that matters.
+						//List<PosProbPair> childParentProbSoFarList = childParentMMap.get(childTypeName);
+						//already added 0-indexed padding
+						//int childParentProbSoFar = childParentProbSoFarList.get(childParentProbSoFarList.size()-1).prob;						
+						childParentMMap.put(childTypeName, new PosProbPair(parentTypeName, parentTotalSoFar));
+						//childParentMMap.put(childTypeName, new PosProbPair(parentTypeName, parentTotalSoFar));						
 					}
 					
 				}
@@ -345,12 +365,14 @@ public class Dep {
 			
 			int totalProb = totalProbMap.get(posType.posTypeName());
 			//+1 since nextInt excludes last number. make into constant.
-			int randInt = RAND_GEN.nextInt(totalProb)+1;
+			int randInt = RAND_GEN.nextInt(totalProb);
 			
 			//use binary search to find the right interval,
-			//map already sorted according to 
+			//map already sorted according to prob
 			
 			int targetIndex = selectRandomMatchingPosSearch(randInt, 0, posProbPairList.size()-1, posProbPairList);
+			//subtract 1, since padding at index 0. don't subtract! since 0 is NONE
+			//targetIndex--;
 			return posProbPairList.get(targetIndex).posTypeName.getPosType();
 			
 		}
@@ -359,6 +381,7 @@ public class Dep {
 				List<PosProbPair> posProbPairList){
 			
 			if(lowerIndex + 1 >= upperIndex){
+				//return lowerIndex;
 				return upperIndex;
 			}
 			int midIndex = (lowerIndex + upperIndex)/2;
@@ -495,6 +518,10 @@ public class Dep {
 			this.prob = prob_;
 		}
 		
+		@Override
+		public String toString(){
+			return "{"+this.posTypeName + " " + this.prob + "}";
+		}
 	}
 	
 	

@@ -45,6 +45,7 @@ public class Story {
 		//should create from file
 		/*contains pairs of form e.g. apple noun. Note lower case pos.*/
 		String lexiconPath = "data/lexicon.txt";
+		lexiconPath = "data/lexiconMedium.txt";
 		createLexicon(POS_WORD_MAP, lexiconPath);
 		
 		//fill map from data sources
@@ -55,9 +56,10 @@ public class Story {
 		String pcProbFileStr = "data/pcProb.txt";
 		//create map for how many children a Pos has
 		createPCProbMap(pcProbFileStr, preMap);
+		System.out.println("pcProbMap created!");
 		
 		posTypePCProbMap = processSearchablePreMap(preMap);
-		
+		System.out.println("posTypePCProbMap created!");
 	}
 	//given a PosType, 
 	
@@ -81,7 +83,7 @@ public class Story {
 			String lexiconPath){
 		
 		SetMultimap<PosTypeName, String> lexiconSetMMap = HashMultimap.create();
-		
+		System.out.println("trying to create lexicon...");
 		List<String> lines = StoryUtils.readLinesFromFile(lexiconPath);
 		Matcher m;
 		/*lines are of the form "apple noun", where last token indicates pos. Could
@@ -96,16 +98,18 @@ public class Story {
 				continue;
 			}
 			PosTypeName posTypeName = PosTypeName.getTypeFromName(lineAr[1].toUpperCase());
+			
 			if(posTypeName != PosTypeName.NONE) {
 				lexiconSetMMap.put(posTypeName, lineAr[0]);				
 			}else {
 				throw new IllegalArgumentException(line + " classified as posTypeName.NONE");
 			}
 		}
-		for(PosTypeName posTypeName : lexiconSetMMap.keys()) {
+		System.out.println("lexicon file read! lexiconSetMMap.keys().size() "+lexiconSetMMap.keySet().size());
+		for(PosTypeName posTypeName : lexiconSetMMap.keySet()) {
 			posWordLexiconMMap.putAll(posTypeName, lexiconSetMMap.get(posTypeName));
 		}
-		
+		System.out.println("lexicon data put to list multimap!");
 		/*posWordLexiconMMap.put(PosTypeName.VERB, "fly");
 		posWordLexiconMMap.put(PosTypeName.VERB, "have");
 		posWordLexiconMMap.put(PosTypeName.AUX, "be");
@@ -127,6 +131,11 @@ public class Story {
 		return POS_WORD_MAP;
 	}
 	
+	/**
+	 * Create Searchable premap with desired ordering
+	 * @param preMap
+	 * @return
+	 */
 	private static Map<PosTypeName, SearchableList<Integer>> processSearchablePreMap(Map<PosTypeName, 
 			List<Integer>> preMap) {
 		
@@ -181,25 +190,26 @@ public class Story {
 				
 				if(null == pcProbList) {
 					pcProbList = new ArrayList<Integer>();
-					for(int i = 0; i < 4; i++) {
+					for(int i = 0; i < 5; i++) {
 						pcProbList.add(0);					
 					}
+					//initial padding so binary search can return upper index.
+					pcProbList.set(0, 0);					
 					posTypePCProbMap.put(posTypeName, pcProbList);
 				}
 				
 				if(childrenCountStr.contains("are leaves")) {
-					pcProbList.set(0, prob);
-				}else if(childrenCountStr.contains("one child")) {
 					pcProbList.set(1, prob);
-				}else if(childrenCountStr.contains("two children")) {
+				}else if(childrenCountStr.contains("one child")) {
 					pcProbList.set(2, prob);
-				}else if(childrenCountStr.contains("three or more children")) {
+				}else if(childrenCountStr.contains("two children")) {
 					pcProbList.set(3, prob);
+				}else if(childrenCountStr.contains("three or more children")) {
+					pcProbList.set(4, prob);
 				}
 				
 			}		
-		}
-		
+		}		
 	}
 	
 	public static String getRandomWord(PosType posType) {
@@ -208,7 +218,7 @@ public class Story {
 		if(null == posTypeWordList) {
 			return PLACEHOLDER_WORD;
 		}
-		return posTypeWordList.get(RAND_GEN.nextInt(posTypeWordList.size()));		
+		return posTypeWordList.get(RAND_GEN.nextInt(posTypeWordList.size()));
 	}
 	
 	public static Map<PosTypeName, SearchableList<Integer>> posTypePCProbMap(){
@@ -219,7 +229,7 @@ public class Story {
 	public static void main(String[] args) {
 		//guess pos for the input words using pos tagger, 
 		
-		PosType posType = PosType.NOUN;
+		PosType posType = PosType.VERB;
 		//origin of tree, the supplied entry point, *not* root
 		Pos originPos = Pos.createSentenceTree(posType);
 		//arrange tree into a sentence based on 		
