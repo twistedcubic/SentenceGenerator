@@ -132,10 +132,7 @@ more adj
 same adj
 last adj
 first adj
-is aux
-was aux
 be aux
-are aux
 will aux
 can aux
 have aux
@@ -297,3 +294,7 @@ adoptable adj
 adopted adj
 adoptive adj
 adorable adj
+adored adj
+adoring adj
+adorned adj
+adrenal adj

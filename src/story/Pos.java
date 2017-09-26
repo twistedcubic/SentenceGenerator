@@ -11,10 +11,7 @@ import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ListMultimap;
-
 import story.Dep.DepType;
-import story.Pos.PosType;
 import story.Pos.PosType.PosTypeName;
 import story.Story.PosPCType;
 import utils.StoryUtils;
@@ -36,9 +33,11 @@ public class Pos {
 	private static final int TOTAL_PROB_1000 = 1000;
 	private static final int TOTAL_PROB_100 = 100;
 	private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
-	//pattern used to extract parent-child relations. 2 groups.
+	//pattern used to extract parent-child relations. 3 groups. Don't count those
+	//that occur less than 10 times overall. e.g.
+	// <a href="">en-dep/flat</a> (1; 0% instances)
 	private static Pattern DEP_PATTERN 
-		= Pattern.compile(".+en-dep/(.+)</a>(?:.+);\\s*([\\d]+)% inst.+");
+		= Pattern.compile(".+en-dep/(.+)</a>(?:.+?)(\\d+);\\s*([\\d]+)% inst.+");
 	//<p><code>VERB</code> nodes are attached to their parents using 32 different relations:
 	//4 groups
 	private static final Pattern DEP_INTRO_PATTERN = Pattern.compile("(.+)<code>(.+)</code> nodes are attached (.+?):(.+)");
@@ -362,6 +361,7 @@ public class Pos {
 				Matcher m;
 				String depTypeStr;
 				int prob;
+				int occurrenceCount;
 				DepType depType;
 				int totalProb = 0;
 				//initial padding so binary search can return upper index.
@@ -374,13 +374,18 @@ public class Pos {
 						depTypeStr = m.group(1);
 						//System.out.println("Dep.DepType.getTypeFromName(depTypeStr) "+depTypeStr+" "+Dep.DepType.getTypeFromName(depTypeStr));
 						if((depType = Dep.DepType.getTypeFromName(depTypeStr)) != DepType.NONE) {
-							prob = Integer.parseInt(m.group(2));
+							occurrenceCount = Integer.parseInt(m.group(2));
+							prob = Integer.parseInt(m.group(3));
 							//System.out.println("depTypeStr "+depTypeStr);
 							if("root".equals(depTypeStr)) {
 								rootProbMap.put(PosTypeName.getTypeFromName(posNameStr), prob);
 								//root doesn't extend as a dependence relation
 								continue;
 								//this.isRootProb = prob;
+							}
+							//experiment with this constant, then make field
+							if(prob == 0 && occurrenceCount < 10){
+								continue;
 							}
 							//some data have 0 prob because low occurrence.
 							//experiment with this constant!!
@@ -573,16 +578,26 @@ public class Pos {
 			return this.posWord;
 		}
 		
-		//arrange based on dep avg dist and left-right ordering.
-		List<String> leftDepList = new ArrayList<String>();
-		List<String> rightDepList = new ArrayList<String>();
+		//List<String> leftDepList = new ArrayList<String>();
+		//List<String> rightDepList = new ArrayList<String>();
 		
 		Collections.sort(this.childDepList, 
 				new Comparator<Dep>(){
 					public int compare(Dep dep1, Dep dep2){
+						//these dist are ~2.5 on avg, with std dev 2.5?
 						double dep1Dist = dep1.depType().parentChildDist();
 						double dep2Dist = dep2.depType().parentChildDist();
-						return dep1Dist > dep2Dist ? 1 : (dep1Dist < dep2Dist ? -1 : 0);
+						int comp = dep1Dist > dep2Dist ? 1 : (dep1Dist < dep2Dist ? -1 : 0);
+						//introduce some randomness if distance difference is small.
+						//but this makes the compare non-transitive and non-symmetric!!
+						if(comp > 0 && dep1Dist - dep2Dist < 1 
+								|| comp < 0 && dep2Dist - dep1Dist < 1){
+							int randInt = RAND_GEN.nextInt(TOTAL_PROB_100);
+							if(randInt < 40){
+								comp = -comp;
+							}
+						}
+						return comp;
 					}
 				} 
 		);
@@ -590,13 +605,14 @@ public class Pos {
 		StringBuilder rightSb = new StringBuilder(30);
 		StringBuilder leftSb = new StringBuilder(30);
 
-		//Do insertion sort when adding, since list size <= 3, which means
-		//each side has on average 1.5 elements.
+		//arrange based on dep avg dist and left-right ordering.
+		//list already sorted according to distance
 		for(Dep dep : this.childDepList) {
 			
 			int parentFirstProb = dep.depType().parentFirstProb();
 			//System.out.println("~~~~parentFirstProb "+parentFirstProb);
-			int randInt = RAND_GEN.nextInt(TOTAL_PROB_100)+1;
+			//parentFirstProb between 0 and 100
+			int randInt = RAND_GEN.nextInt(TOTAL_PROB_100 + 1);
 			Pos childPos = dep.childPos();
 			if(childPos == this){
 				throw new IllegalArgumentException("child pos equal to this!");
@@ -605,10 +621,10 @@ public class Pos {
 			
 			if(randInt < parentFirstProb){
 				//depList already sorted
-				rightDepList.add(childPosStr);
+				//rightDepList.add(childPosStr);
 				rightSb.append(childPosStr).append(" ");
 			}else{
-				leftDepList.add(0, childPosStr);
+				//leftDepList.add(0, childPosStr);
 				leftSb.insert(0, " ").insert(0, childPosStr);
 			}			
 		}		

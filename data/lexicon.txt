@@ -132,10 +132,7 @@ more adj
 same adj
 last adj
 first adj
-is aux
-was aux
 be aux
-are aux
 will aux
 can aux
 have aux

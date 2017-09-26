@@ -191,15 +191,15 @@ public class Dep {
 		//private int leftRightProb;
 		
 		/**Prob for Dep to be left-to-right (parent preceds child)
-		 * int between 0 and 100.*/		
+		 * int between 0 and 100, inclusive both sides.*/		
 		private int parentFirstProb;
 		
 		private DepType(String depTypeName) {
 			//System.out.println("Dep - depTypeName "+depTypeName);
 			
 			if("".equals(depTypeName)){
-				//use placeholder constants
-				this.parentFirstProb = TOTAL_PROB_1000;
+				//should use placeholder constants
+				this.parentFirstProb = TOTAL_PROB_100;
 				this.parentChildDist = 3;
 				
 				//create maps for possible pos pairs for this DepType
