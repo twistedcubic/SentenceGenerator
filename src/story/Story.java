@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -229,14 +230,32 @@ public class Story {
 	public static void main(String[] args) {
 		//guess pos for the input words using pos tagger, 
 		
-		PosType posType = PosType.VERB;
-		//origin of tree, the supplied entry point, *not* root
-		Pos originPos = Pos.createSentenceTree(posType);
-		//arrange tree into a sentence based on 		
-		String sentence = Pos.arrangePosStr(originPos);
-				
-		System.out.println("sentence: " + sentence);
-		
+		Scanner sc = new Scanner(System.in);
+		while(sc.hasNextLine()) {
+			String line = sc.nextLine();
+			String[] lineAr = StoryUtils.WHITE_NON_EMPTY_SPACE_PATT.split(line);
+			if(lineAr.length == 0) {
+				continue;
+			}
+			String type = lineAr[0];
+			if("quit".equals(type)) {
+				break;
+			}
+			PosType posType = PosTypeName.getTypeFromName(type.toUpperCase()).getPosType();
+			if(posType == PosType.NONE) {
+				System.out.println("Please enter a valid PosType");
+				continue;
+			}
+			//PosType posType = PosType.VERB;
+			//origin of tree, the supplied entry point, *not* root
+			Pos originPos = Pos.createSentenceTree(posType);
+			//arrange tree into a sentence based on 		
+			String sentence = Pos.arrangePosStr(originPos);
+					
+			System.out.println("sentence: " + sentence);
+			
+		}
+		sc.close();
 	}
 	
 }

@@ -22,9 +22,9 @@ import story.Dep.DepType;
  */
 public class StoryUtils {
 
-	public static Pattern WHITE_EMPTY_SPACE_PATT = Pattern.compile("\\s*");
-	public static Pattern WHITE_NON_EMPTY_SPACE_PATT = Pattern.compile("\\s+");
-	public static Pattern SURROUNDING_SPACE_PATT = Pattern.compile("^\\s*(.+?)\\s*$");
+	public static final Pattern WHITE_EMPTY_SPACE_PATT = Pattern.compile("\\s*");
+	public static final Pattern WHITE_NON_EMPTY_SPACE_PATT = Pattern.compile("\\s+");
+	public static final Pattern SURROUNDING_SPACE_PATT = Pattern.compile("^\\s*(.+?)\\s*$");
 	
 	/**
 	 * Wrapper around list where each successive element 
@@ -160,4 +160,14 @@ public class StoryUtils {
 		}
 		return noDupList;
 	}
+	
+	/**
+	 * IDEAS:
+	 * -tell a story where all words start with a particular letter!
+	 * haikus
+	 * any for baron, det, pre (case) should not both occur, for e.g. NOUN
+	 * -good starting points: aux
+	 * -remove those children pos that are same as parent Pos?
+	 * -keep going if no verb so far
+	 */
 }

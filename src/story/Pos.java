@@ -5,11 +5,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.common.collect.HashMultimap;
 
 import story.Dep.DepType;
 import story.Pos.PosType.PosTypeName;
@@ -32,15 +36,19 @@ public class Pos {
 	private static final Random RAND_GEN = new Random();
 	private static final int TOTAL_PROB_1000 = 1000;
 	private static final int TOTAL_PROB_100 = 100;
-	private static Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
+	private static final Pattern COMMA_SEP_PATTERN = Pattern.compile("\\s*, \\s*");
+	/** max pos count per sentence before stop generating additional dep relations*/
+	private static final int MAX_POS_COUNT = 7;
 	//pattern used to extract parent-child relations. 3 groups. Don't count those
 	//that occur less than 10 times overall. e.g.
 	// <a href="">en-dep/flat</a> (1; 0% instances)
-	private static Pattern DEP_PATTERN 
+	private static final Pattern DEP_PATTERN 
 		= Pattern.compile(".+en-dep/(.+)</a>(?:.+?)(\\d+);\\s*([\\d]+)% inst.+");
 	//<p><code>VERB</code> nodes are attached to their parents using 32 different relations:
 	//4 groups
 	private static final Pattern DEP_INTRO_PATTERN = Pattern.compile("(.+)<code>(.+)</code> nodes are attached (.+?):(.+)");
+	/**multimap of DepType and their incompatible DepType's*/
+	private static final HashMultimap<DepType, DepType> INCOMPATIBLE_PAIRS = HashMultimap.create();
 	
 	private static final Map<PosTypeName, List<DepTypeProbPair>> parentDepTypePairListMap;
 	private static final Map<PosTypeName, List<DepTypeProbPair>> childDepTypePairListMap;	
@@ -77,7 +85,25 @@ public class Pos {
 		
 		//check parent child formts are same! <-- yep
 		
+		String[][] incompatiblePairsAr = new String[][] {
+			//e.g. "any for baron"
+			{"pre", "det"},
+			//e.g. "PART AUX" - "to would"
+			{"mark", "aux"}
+		};
+		for(String[] depTypeStrAr : incompatiblePairsAr) {
+			Set<DepType> curSet = new HashSet<DepType>();
+			for(String depTypeStr : depTypeStrAr) {
+				curSet.add(DepType.getTypeFromName(depTypeStr));
+			}
+			
+			for(String depTypeStr : depTypeStrAr) {
+				//add whole set, as each dep is incompatible with itself, to avoid duplicates.
+				INCOMPATIBLE_PAIRS.putAll(DepType.getTypeFromName(depTypeStr), curSet);				
+			}			
+		}
 	}
+	
 	Pos(PosType posType_) {
 		this.posType = posType_;		
 	}
@@ -232,9 +258,10 @@ public class Pos {
 		 * type.
 		 * @param posType
 		 * @param posParentChildType Whether supplied posType *should be taken* as parent or child.
+		 * @param posCount number of pos already in tree.
 		 * @return
 		 */
-		public static List<DepType> selectRandomDepType(Pos pos, PosPCType posParentChildType) {
+		public static List<DepType> selectRandomDepType(Pos pos, PosPCType posParentChildType, int posCount) {
 			
 			PosType posType = pos.posType;
 			int totalProb = posParentChildType == PosPCType.PARENT ? posType.childTotalProb : posType.parentTotalProb;
@@ -246,7 +273,9 @@ public class Pos {
 			List<DepType> dTList = new ArrayList<DepType>();			
 			
 			int numDepType;
-			if(posParentChildType == PosPCType.CHILD) {
+			if(posCount > MAX_POS_COUNT) {
+				numDepType = 0;
+			}else if(posParentChildType == PosPCType.CHILD) {
 				numDepType = 1;
 			}else {
 				// PCProbMap goes from 0 to 100. 
@@ -260,8 +289,17 @@ public class Pos {
 				index--;
 				//count number of existing children
 				numDepType = index - pos.childDepList.size();
-				//have at least one child if originPos, to avoid empty sentence
-				numDepType = numDepType == 0 && pos.distToOrigin == 0 ? 1 : numDepType;
+				if(pos.distToOrigin > 0) {
+					//compound sentences with many grandchildren usually don't make much sense
+					numDepType = numDepType > 1 ? numDepType - 1 : numDepType;
+				}else //if(pos.distToOrigin == 0) 
+				{
+					System.out.println("boosting numDepTpye!");
+					//also have at least one child if originPos, to avoid empty sentence
+					numDepType = numDepType < 3 ? 2 : numDepType;
+				}
+				
+				//numDepType = numDepType == 0 && pos.distToOrigin == 0 ? 1 : numDepType;
 			}
 			
 			for(int i = 0; i < numDepType; i++) {
@@ -270,15 +308,50 @@ public class Pos {
 				//use binary search to find the right interval,
 				//map already sorted according to 				
 				int targetIndex = selectRandomDepTypeSearch(randInt, 0, depTypeList.size()-1, depTypeList);
+				DepType depType = depTypeList.get(targetIndex).depType;
+				
+				//avoid incompatible DepType pairs e.g. "det" and "pre (case)" occuring in same list, e.g.: "any for baron".
+				//Also remove if chosen DepType is same as the parent type of pos.
+				while(shouldRemoveIncompatiblePairs(pos, posParentChildType, depType, dTList)) {
+					randInt = RAND_GEN.nextInt(totalProb);
+					targetIndex = selectRandomDepTypeSearch(randInt, 0, depTypeList.size()-1, depTypeList);
+					depType = depTypeList.get(targetIndex).depType;					
+				}
 				
 				//-1 since the upper bound is returned, rather than lower bound
 				//targetIndex = targetIndex == 0 ? targetIndex : targetIndex - 1; 
-				dTList.add(depTypeList.get(targetIndex).depType);
+				dTList.add(depType);
 			}
 			
 			return dTList;			
 		}
 		
+		/**
+		 * Remove incompatible DepType pairs e.g. "det" and "pre (case)" occuring in same list, e.g.: "any for baron".
+		 * Also remove if chosen DepType is same as the parent type of pos.
+		 * @param depType
+		 * @param depTypeSet depType so far
+		 * @return True if removed, False otherwise.
+		 */
+		private static boolean shouldRemoveIncompatiblePairs(Pos pos, PosPCType posPCType,
+				DepType depType, List<DepType> depTypeList) {
+			
+			if(posPCType == PosPCType.PARENT && null != pos.parentDep && pos.parentDep.depType() == depType) {
+				return true;
+			}
+			
+			for(DepType type : depTypeList) {
+				Set<DepType> incompatibleTypes = INCOMPATIBLE_PAIRS.get(type);
+				
+				if(null == incompatibleTypes) {
+					continue;
+				}else if(incompatibleTypes.contains(depType)) {					
+					return true;
+				}
+			}
+			return false;
+		}
+
 		public static int selectRandomDepTypeSearch(int targetProb, int lowerIndex, int upperIndex, 
 				List<DepTypeProbPair> depTypePairList) {
 			
@@ -414,15 +487,18 @@ public class Pos {
 		Pos pos = new Pos(posType);
 		pos.posWord = Story.getRandomWord(posType);
 		System.out.println("originPos word: "+pos.posWord);
-		growTree(pos);
+		int countSoFar = 1;
+		growTree(pos, countSoFar);
 		return pos;
 	}
 
 	/**
 	 * Attach additional Dep and Pos to given Pos.
 	 * @param pos
+	 * @param posCount existing number of pos already in tree.
+	 * @return updated pos count.
 	 */
-	private static void growTree(Pos pos) {
+	private static int growTree(Pos pos, int posCount) {
 		
 		PosType posType = pos.posType;
 		
@@ -433,10 +509,11 @@ public class Pos {
 		//use prob to determine if get parent.
 		if(getParentBool) {
 			//create Dep with randomly generated DepType
-			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.CHILD);
+			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.CHILD, posCount);
 			System.out.println("Pos - parent depTypeList "+depTypeList);
-			
-			if(!depTypeList.isEmpty()) {
+			posCount += depTypeList.size();
+			boolean b = false;
+			if(b && !depTypeList.isEmpty()) {
 				//delete duplicate dep, to avoid e.g. two prepositions stacked together, "as at"
 				depTypeList = StoryUtils.deleteDuplicateDepType(depTypeList);
 				
@@ -468,7 +545,8 @@ public class Pos {
 				parentPos.addDep(dep, PosPCType.PARENT);
 				
 				//grow children
-				growTree(parentPos);
+				//don't grow more children for parent node - Oct 8
+				//posCount = growTree(parentPos, posCount);
 			}			
 		}
 		
@@ -479,7 +557,9 @@ public class Pos {
 			/*if(posType == PosType.SCONJ) {
 				System.out.println("sconj!");
 			}*/
-			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.PARENT);
+			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.PARENT, posCount);
+			posCount += depTypeList.size();
+			
 			//delete duplicate dep, to avoid e.g. two prepositions stacked together, "as at"
 			if(depTypeList.size() > 1) {
 				depTypeList = StoryUtils.deleteDuplicateDepType(depTypeList);				
@@ -490,16 +570,25 @@ public class Pos {
 				//this is for child
 				PosType matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);
 				
+				if(null != pos.parentDep) {
+					//avoid same consecutive pos, e.g. verb-verb
+					PosType parentPosType = pos.parentDep.parentPos().posType;
+					while(parentPosType == matchingPosType) {
+						matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);
+					}
+				}
+				
 				//create Dep from DepType
 				//Pos parentPos_, Pos childPos_, DepType depType_
 				Pos childPos;
 				Pos parentPos;
 				//if(parentChildType == PosPCType.PARENT) {
-					parentPos = pos;
-					childPos = new Pos(matchingPosType);
-					childPos.distToOrigin = pos.distToOrigin + 1;
+				
+				parentPos = pos;
+				childPos = new Pos(matchingPosType);
+				childPos.distToOrigin = pos.distToOrigin + 1;
 					
-					childPos.posWord = Story.getRandomWord(matchingPosType);
+				childPos.posWord = Story.getRandomWord(matchingPosType);
 				System.out.println("randomly selected child matchingPosType: "+matchingPosType + " FOR " + depType
 						+ " WORD " + childPos.posWord);
 				/*}/*else {
@@ -513,10 +602,10 @@ public class Pos {
 				parentPos.addDep(dep, PosPCType.PARENT);
 				
 				//grow children
-				growTree(childPos);
-				
+				posCount = growTree(childPos, posCount);				
 			}
 		}
+		return posCount;
 	}
 
 	/**
@@ -558,10 +647,15 @@ public class Pos {
 		final int NUM_CHILDREN_THRESHOLD = 3;
 		if(numChildren > NUM_CHILDREN_THRESHOLD) {
 			return false;
-		}		
+		}
+		
 		//threshold dist to origin
-		final int CHILD_DIST_THRESHOLD = 2;
+		final int CHILD_DIST_THRESHOLD = 1;
 		if(pos.distToOrigin > CHILD_DIST_THRESHOLD) {
+			return false;
+		}
+		//verbs tend to have children that are also verbs
+		if(pos.posType == PosType.VERB && pos.distToOrigin > 0) {
 			return false;
 		}
 		
