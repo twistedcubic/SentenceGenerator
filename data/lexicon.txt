@@ -17,10 +17,8 @@ by adp
 as adp
 so adv
 just adv
-when adv
 very adv
 also adv
-how adv
 now adv
 even adv
 then adv
@@ -14799,6 +14797,7 @@ westward adv
 westwards adv
 whacking adv
 wheezily adv
+when adv
 whence adv
 wheresoever adv
 wherever adv

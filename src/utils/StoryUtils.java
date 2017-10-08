@@ -3,18 +3,17 @@ package utils;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
-import story.Pos;
-import story.Pos.PosType;
-import story.Pos.PosType.PosTypeName;
+import story.Dep.DepType;
 
 /**
  * Utility class for generating story 
@@ -144,4 +143,21 @@ public class StoryUtils {
 		return lines;
 	}
 		
+	/**
+	 * Delete duplicate dep, to avoid e.g. two prepositions stacked together, "as at"
+	 * @param depTypeList
+	 * @return
+	 */
+	public static List<DepType> deleteDuplicateDepType(List<DepType> depTypeList) {
+		
+		Set<DepType> depTypeSet = new HashSet<DepType>();
+		List<DepType> noDupList = new ArrayList<DepType>();
+		for(DepType depType : depTypeList) {
+			if(!depTypeSet.contains(depType)) {
+				noDupList.add(depType);
+				depTypeSet.add(depType);
+			}
+		}
+		return noDupList;
+	}
 }

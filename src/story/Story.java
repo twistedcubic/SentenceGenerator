@@ -38,7 +38,7 @@ public class Story {
 	private static final String PLACEHOLDER_WORD = "PC";
 	private static final Pattern LAST_TOK_PATT = Pattern.compile("\\s+(?=([^\\s]+$))");
 	
-	private static final int TOTAL_PROB = 100;
+	//private static final int TOTAL_PROB = 100;
 	
 	static {
 		POS_WORD_MAP = ArrayListMultimap.create();

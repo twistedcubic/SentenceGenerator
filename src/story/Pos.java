@@ -437,6 +437,8 @@ public class Pos {
 			System.out.println("Pos - parent depTypeList "+depTypeList);
 			
 			if(!depTypeList.isEmpty()) {
+				//delete duplicate dep, to avoid e.g. two prepositions stacked together, "as at"
+				depTypeList = StoryUtils.deleteDuplicateDepType(depTypeList);
 				
 				DepType depType = depTypeList.get(0);
 				//this is for child
@@ -474,10 +476,15 @@ public class Pos {
 		//get_child takes into account e.g. how far from Pos originator. how many children already, etc
 		if(getChildBool) {
 			//create Dep with randomly generated DepType
-			if(posType == PosType.SCONJ) {
+			/*if(posType == PosType.SCONJ) {
 				System.out.println("sconj!");
-			}
+			}*/
 			List<DepType> depTypeList = PosType.selectRandomDepType(pos, PosPCType.PARENT);
+			//delete duplicate dep, to avoid e.g. two prepositions stacked together, "as at"
+			if(depTypeList.size() > 1) {
+				depTypeList = StoryUtils.deleteDuplicateDepType(depTypeList);				
+			}
+			
 			System.out.println("Pos - children depTypeList "+depTypeList);
 			for(DepType depType : depTypeList) {
 				//this is for child
@@ -569,10 +576,10 @@ public class Pos {
 	 * @return
 	 */
 	private String createSubTreePhrase() {
+		
 		if(null != this.subTreePhrase) {
 			return this.subTreePhrase;
-		}
-		
+		}		
 		if(this.childDepList.isEmpty()) {
 			//leaf Pos
 			return this.posWord;
@@ -649,11 +656,9 @@ public class Pos {
 		
 		Dep parentDep = curPos.parentDep;
 		
-		while(null != parentDep && (curPos = parentDep.parentPos()) != null) {
-			
+		while(null != parentDep && (curPos = parentDep.parentPos()) != null) {			
 			curPos.createSubTreePhrase();
-			prevPos = curPos;
-			
+			prevPos = curPos;			
 			parentDep = curPos.parentDep;
 			//get the parent
 		}
