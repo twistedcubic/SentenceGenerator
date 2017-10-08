@@ -1,7 +1,6 @@
 in adp
 fly verb
 have verb
-be aux
 is aux
 apple noun
 she pron
@@ -49,7 +48,6 @@ me pron
 the det
 a det
 this det
-an det
 all det
 some det
 any det
@@ -6434,7 +6432,6 @@ niffy adj
 nifty adj
 niggardly adj
 niggling adj
-nigh adj
 nightlong adj
 nightly adj
 nightmarish adj
@@ -13476,7 +13473,6 @@ new adv
 newly adv
 next adv
 nicely adv
-nigh adv
 nigher adv
 nighest adv
 nightly adv
@@ -40040,7 +40036,6 @@ ex adp
 except adp
 excepting adp
 failing adp
-fer adp
 for adp
 fore adp
 forth adp
@@ -40057,7 +40052,6 @@ minus adp
 near adp
 neath adp
 next adp
-nigh adp
 notwithstanding adp
 o'er adp
 of adp
@@ -40076,8 +40070,6 @@ pending adp
 per adp
 plus adp
 pro adp
-qua adp
-re adp
 reference adp
 regarding adp
 respecting adp
@@ -40907,7 +40899,6 @@ busy verb
 butcher verb
 butt verb
 butter verb
-butterfly verb
 button verb
 buttonhole verb
 buttress verb
@@ -46078,7 +46069,6 @@ tally verb
 tame verb
 tamp verb
 tamper verb
-tampon verb
 tan verb
 tangle verb
 tango verb
@@ -46089,11 +46079,8 @@ tape verb
 taper verb
 tar verb
 target verb
-tariff verb
-tarmac verb
 tarnish verb
 tarry verb
-task verb
 taste verb
 tat verb
 tattle verb
@@ -46103,7 +46090,6 @@ tauten verb
 tax verb
 taxi verb
 teach verb
-team verb
 tear verb
 teargas verb
 tease verb

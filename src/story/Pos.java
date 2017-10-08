@@ -289,14 +289,23 @@ public class Pos {
 				index--;
 				//count number of existing children
 				numDepType = index - pos.childDepList.size();
-				if(pos.distToOrigin > 0) {
+				if(pos.distToOrigin > 1) {
 					//compound sentences with many grandchildren usually don't make much sense
 					numDepType = numDepType > 1 ? numDepType - 1 : numDepType;
-				}else //if(pos.distToOrigin == 0) 
+				}else if(pos.distToOrigin == 0) 
 				{
 					System.out.println("boosting numDepTpye!");
 					//also have at least one child if originPos, to avoid empty sentence
-					numDepType = numDepType < 3 ? 2 : numDepType;
+					//numDepType = numDepType < 3 ? 2 : numDepType;
+					numDepType = 3;
+				}
+				
+				if(pos.posType == PosType.VERB && pos.distToOrigin > 0
+						) {
+					//reduce freq of verbs, since verb children often verbs, and don't
+					//play well with other pos
+					numDepType = numDepType > 1 ? numDepType - 1 : numDepType;
+					//numDepType = numDepType > 0 ? 1 : 0;
 				}
 				
 				//numDepType = numDepType == 0 && pos.distToOrigin == 0 ? 1 : numDepType;
@@ -312,7 +321,11 @@ public class Pos {
 				
 				//avoid incompatible DepType pairs e.g. "det" and "pre (case)" occuring in same list, e.g.: "any for baron".
 				//Also remove if chosen DepType is same as the parent type of pos.
+				int maxIter = 3;
 				while(shouldRemoveIncompatiblePairs(pos, posParentChildType, depType, dTList)) {
+					if(--maxIter < 0) {
+						break;
+					}
 					randInt = RAND_GEN.nextInt(totalProb);
 					targetIndex = selectRandomDepTypeSearch(randInt, 0, depTypeList.size()-1, depTypeList);
 					depType = depTypeList.get(targetIndex).depType;					
@@ -337,6 +350,11 @@ public class Pos {
 				DepType depType, List<DepType> depTypeList) {
 			
 			if(posPCType == PosPCType.PARENT && null != pos.parentDep && pos.parentDep.depType() == depType) {
+				return true;
+			}
+			
+			//remove puntuation for now
+			if(DepType.punct == depType) {
 				return true;
 			}
 			
@@ -535,7 +553,7 @@ public class Pos {
 					childPos = pos;	
 					parentPos.distToOrigin = pos.distToOrigin + 1;
 					parentPos.posWord = Story.getRandomWord(matchingPosType);
-					System.out.println("randomly selected child matchingPosType: "+matchingPosType + " FOR " + depType
+					System.out.println("randomly selected parent matchingPosType: "+matchingPosType + " FOR " + depType
 							+ " WORD " + parentPos.posWord);	
 				//}	*/
 				
@@ -569,11 +587,22 @@ public class Pos {
 			for(DepType depType : depTypeList) {
 				//this is for child
 				PosType matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);
+				//CCONJ e.g. "either", "both", which often don't make much sense in sentences\
+				if(PosType.CCONJ == matchingPosType //|| PosType.PUNCT == matchingPosType
+						) {
+					posCount--;
+					continue;
+				}
 				
 				if(null != pos.parentDep) {
 					//avoid same consecutive pos, e.g. verb-verb
 					PosType parentPosType = pos.parentDep.parentPos().posType;
+					//some dep don't have many pos
+					int maxIter = 2;
 					while(parentPosType == matchingPosType) {
+						if(--maxIter < 0) {
+							break;
+						}
 						matchingPosType = depType.selectRandomMatchingPos(posType, PosPCType.PARENT);
 					}
 				}
@@ -655,7 +684,7 @@ public class Pos {
 			return false;
 		}
 		//verbs tend to have children that are also verbs
-		if(pos.posType == PosType.VERB && pos.distToOrigin > 0) {
+		if(pos.posType == PosType.VERB && pos.distToOrigin > 1) {
 			return false;
 		}
 		
@@ -758,6 +787,31 @@ public class Pos {
 		}
 		
 		return prevPos.subTreePhrase;
+	}
+	
+	/**
+	 * If any Pos reachable from originPos has posType VERB.
+	 * Right now assume originPos is root, based on today's changes.
+	 * - Oct 8, 2017
+	 * @param originPos
+	 * @return
+	 */
+	public static boolean treeContainsVerb(Pos originPos) {
+		if(null == originPos) {
+			return false;
+		}
+		if(PosType.VERB == originPos.posType 
+				//AUX e.g. is, has, are, etc
+				|| PosType.AUX == originPos.posType) {
+			return true;
+		}
+		
+		for(Dep dep : originPos.childDepList) {
+			if(treeContainsVerb(dep.childPos())) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public PosType posType() {

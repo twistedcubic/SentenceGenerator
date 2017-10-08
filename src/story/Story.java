@@ -46,7 +46,7 @@ public class Story {
 		//should create from file
 		/*contains pairs of form e.g. apple noun. Note lower case pos.*/
 		String lexiconPath = "data/lexicon.txt";
-		lexiconPath = "data/lexiconMedium.txt";
+		//lexiconPath = "data/lexiconMedium.txt";
 		createLexicon(POS_WORD_MAP, lexiconPath);
 		
 		//fill map from data sources
@@ -219,7 +219,18 @@ public class Story {
 		if(null == posTypeWordList) {
 			return PLACEHOLDER_WORD;
 		}
-		return posTypeWordList.get(RAND_GEN.nextInt(posTypeWordList.size()));
+		int posTypeWordListSz = posTypeWordList.size();
+		String word = posTypeWordList.get(RAND_GEN.nextInt(posTypeWordListSz));
+		
+		/*int maxIter = 15;
+		//prototype slow!!
+		while('s' != word.charAt(0)) {
+			if(--maxIter < 1) {
+				break;
+			}
+			word = posTypeWordList.get(RAND_GEN.nextInt(posTypeWordListSz));
+		}*/
+		return word;
 	}
 	
 	public static Map<PosTypeName, SearchableList<Integer>> posTypePCProbMap(){
@@ -249,11 +260,21 @@ public class Story {
 			//PosType posType = PosType.VERB;
 			//origin of tree, the supplied entry point, *not* root
 			Pos originPos = Pos.createSentenceTree(posType);
+			
+			int maxIter = 8;
+			while(!Pos.treeContainsVerb(originPos)) {
+				if(--maxIter < 0) {
+					break;
+				}
+				System.out.println("*** Trying again to find a verb!");
+				originPos = Pos.createSentenceTree(posType);
+			}
+			
 			//arrange tree into a sentence based on 		
 			String sentence = Pos.arrangePosStr(originPos);
-					
-			System.out.println("sentence: " + sentence);
 			
+			System.out.println("sentence: " + sentence);
+			System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");
 		}
 		sc.close();
 	}

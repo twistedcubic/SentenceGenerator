@@ -169,5 +169,16 @@ public class StoryUtils {
 	 * -good starting points: aux
 	 * -remove those children pos that are same as parent Pos?
 	 * -keep going if no verb so far
+	 * -nounand verb good starting pos, now short, good for haikus. noun particular, verb too many verbs
+	 * -don't use if first or last word verb <--yes do this.
+	 * increase verb occurences! right now seem to need to try a lot to find a verb
+	 * -generate several candidates, in the rank, e.g based on non ideal pairs, adj-verb secretarial barrage, ***
+	 * -should not end in Aux or verb, aux eg "will", "be", should not start with e.g. cconj.
+	 * -add "s" to verbs after tihrd person pronouns.
+	 * -one word eg noun, tell a sentence about it. ***
+	 * on website, show relation and pos to explain
+	 * they 's
+	 * -shouldn't end in PRON e.g. "we"
+	 * 
 	 */
 }
