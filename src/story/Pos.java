@@ -590,10 +590,12 @@ public class Pos {
 						int comp = dep1Dist > dep2Dist ? 1 : (dep1Dist < dep2Dist ? -1 : 0);
 						//introduce some randomness if distance difference is small.
 						//but this makes the compare non-transitive and non-symmetric!!
-						if(comp > 0 && dep1Dist - dep2Dist < 1 
-								|| comp < 0 && dep2Dist - dep1Dist < 1){
+						double diff;
+						if(comp > 0 && (diff=dep1Dist - dep2Dist) < 1 
+								|| comp < 0 && (diff=dep2Dist - dep1Dist) < 1){
 							int randInt = RAND_GEN.nextInt(TOTAL_PROB_100);
-							if(randInt < 40){
+							if(randInt < 40//70*(1-diff)
+									){
 								comp = -comp;
 							}
 						}
