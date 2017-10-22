@@ -78,7 +78,7 @@
 
 <p>1939 instances of <code>nummod</code> (69%) are right-to-left (child precedes parent). Average distance between parent and child is 1.50622554251156.</p>
 
-<p>4504 instances of <code>dobj</code> (94%) are left-to-right (parent precedes child). Average distance between parent and child is 2.05515088449532.</p>
+<p>4504 instances of <code>obj</code> (94%) are left-to-right (parent precedes child). Average distance between parent and child is 2.05515088449532.</p>
 
 <p>19 instances of <code>orphan</code> (79%) are left-to-right (parent precedes child). Average distance between parent and child is 2.83333333333333.</p>
 

@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Scanner;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +31,11 @@ public class Story {
 	 * Map of pos and words. E.g. on entry for "NOUN" is "apple"
 	 */
 	private static final ListMultimap<PosTypeName, String> POS_WORD_MAP;
+	/**
+	 * Words and their part of speech.
+	 */
+	private static final Map<String, PosType> wordPosTypeMap;
+	
 	private static final Random RAND_GEN = new Random();
 	//e.g. <p>1084 (4%) <code>VERB</code> nodes are leaves.</p>
 		//data on the nodes parent child type stats. Generate number of
@@ -38,15 +45,16 @@ public class Story {
 	private static final String PLACEHOLDER_WORD = "PC";
 	private static final Pattern LAST_TOK_PATT = Pattern.compile("\\s+(?=([^\\s]+$))");
 	
-	private static final int TOTAL_PROB = 100;
+	//private static final int TOTAL_PROB = 100;
 	
 	static {
 		POS_WORD_MAP = ArrayListMultimap.create();
+		wordPosTypeMap = new HashMap<String, PosType>();
 		//should create from file
 		/*contains pairs of form e.g. apple noun. Note lower case pos.*/
 		String lexiconPath = "data/lexicon.txt";
-		lexiconPath = "data/lexiconMedium.txt";
-		createLexicon(POS_WORD_MAP, lexiconPath);
+		//lexiconPath = "data/lexiconMedium.txt";
+		createLexicon(POS_WORD_MAP, wordPosTypeMap, lexiconPath);
 		
 		//fill map from data sources
 		
@@ -80,10 +88,10 @@ public class Story {
 	}
 	
 	private static void createLexicon(ListMultimap<PosTypeName, String> posWordLexiconMMap,
-			String lexiconPath){
+			Map<String, PosType> wordPosTypeMap, String lexiconPath){
 		
 		SetMultimap<PosTypeName, String> lexiconSetMMap = HashMultimap.create();
-		System.out.println("trying to create lexicon...");
+		System.out.println("Creating lexicon...");
 		List<String> lines = StoryUtils.readLinesFromFile(lexiconPath);
 		Matcher m;
 		/*lines are of the form "apple noun", where last token indicates pos. Could
@@ -100,7 +108,12 @@ public class Story {
 			PosTypeName posTypeName = PosTypeName.getTypeFromName(lineAr[1].toUpperCase());
 			
 			if(posTypeName != PosTypeName.NONE) {
-				lexiconSetMMap.put(posTypeName, lineAr[0]);				
+				String word = lineAr[0];
+				lexiconSetMMap.put(posTypeName, word);	
+				
+				if(!wordPosTypeMap.containsKey(word)) {
+					wordPosTypeMap.put(word, posTypeName.getPosType());
+				}
 			}else {
 				throw new IllegalArgumentException(line + " classified as posTypeName.NONE");
 			}
@@ -215,28 +228,110 @@ public class Story {
 	public static String getRandomWord(PosType posType) {
 		
 		List<String> posTypeWordList = Story.POS_WORD_MAP().get(posType.posTypeName());
-		if(null == posTypeWordList) {
+		if(null == posTypeWordList || posTypeWordList.isEmpty()) {
+			System.out.println("Story - no vocab word for PosType " + posType.posTypeName());
 			return PLACEHOLDER_WORD;
 		}
-		return posTypeWordList.get(RAND_GEN.nextInt(posTypeWordList.size()));
+		int posTypeWordListSz = posTypeWordList.size();
+		String word = posTypeWordList.get(RAND_GEN.nextInt(posTypeWordListSz));
+		
+		/*int maxIter = 15;
+		//prototype slow!!
+		while('s' != word.charAt(0)) {
+			if(--maxIter < 1) {
+				break;
+			}
+			word = posTypeWordList.get(RAND_GEN.nextInt(posTypeWordListSz));
+		}*/
+		return word;
 	}
 	
 	public static Map<PosTypeName, SearchableList<Integer>> posTypePCProbMap(){
 		return posTypePCProbMap;
 	}
 
+	/**
+	 * Map of words (current count: 41k) and their part of speech.
+	 */
+	public static Map<String, PosType> wordPosTypeMap(){
+		return wordPosTypeMap;
+	}
+	
 	//create story, connecting input words and prob
 	public static void main(String[] args) {
 		//guess pos for the input words using pos tagger, 
 		
-		PosType posType = PosType.VERB;
-		//origin of tree, the supplied entry point, *not* root
-		Pos originPos = Pos.createSentenceTree(posType);
-		//arrange tree into a sentence based on 		
-		String sentence = Pos.arrangePosStr(originPos);
+		Scanner sc = new Scanner(System.in);
+		while(sc.hasNextLine()) {
+			String line = sc.nextLine();
+			String[] lineAr = StoryUtils.WHITE_NON_EMPTY_SPACE_PATT.split(line);
+			if(lineAr.length == 0) {
+				continue;
+			}
+			String type = lineAr[0];
+			if("quit".equals(type)) {
+				break;
+			}
+			PosType posType = PosTypeName.getTypeFromName(type.toUpperCase()).getPosType();
+			if(posType == PosType.NONE) {
+				System.out.println("Please enter a valid PosType");
+				continue;
+			}
+			
+			//treemap to keep track of scores of various pos.
+			TreeMap<Double, Pos> scorePosTMap = new TreeMap<Double, Pos>();
+			//List<String> posStringList = new ArrayList<String>();
+			double topScore = 0.;
+			
+			int maxIter = 10;
+			while(--maxIter > 0 || scorePosTMap.isEmpty() || topScore < 0.9) {	
+				//PosType posType = PosType.VERB;
+				//origin of tree, the supplied entry point, *not* root
+				Pos originPos = Pos.createSentenceTree(posType);
+				double initialScore = ScoreTree.MAX_TREE_SCORE;
 				
-		System.out.println("sentence: " + sentence);
-		
+				if(!Pos.treeContainsVerb(originPos)) {
+					System.out.println("~~~~~~~ ++++ NO VERB ++++ ");
+					continue;
+					//initialScore = .6;					
+					//System.out.println("*** Trying again to find a verb!");					
+				}
+				//arrange tree into a sentence based on 		
+				String sentence = Pos.arrangePosStr(originPos);
+				double score = ScoreTree.computeTreeScore(originPos, initialScore);
+				topScore = score > topScore ? score : topScore;
+				
+				System.out.println("current sentence: " + sentence);
+				System.out.println("score: " + score);
+				
+				System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");
+				scorePosTMap.put(score, originPos);
+			}
+			/**
+			 * if(!Pos.treeContainsVerb(originPos)) {
+					if(--maxIter < 0) {
+						break;
+					}
+					System.out.println("*** Trying again to find a verb!");
+					originPos = Pos.createSentenceTree(posType);
+				}
+			 */
+			
+			Map.Entry<Double, Pos> mapEntry = scorePosTMap.floorEntry(ScoreTree.MAX_TREE_SCORE);
+			Pos winningRootPos = mapEntry.getValue();
+			String sentence = winningRootPos.subTreePhrase();
+			List<PosType> posTypeList = winningRootPos.subTreePosList();
+			//e.g. "is verboten divine "
+			if(posTypeList.get(0) == PosType.AUX) {
+				sentence += "?";
+			}
+			
+			System.out.println("top sentence: " + sentence);
+			System.out.println("posTypeList: " + posTypeList);
+			System.out.println("score: " + mapEntry.getKey());
+			System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");
+		}
+		sc.close();
 	}
 	
 }
