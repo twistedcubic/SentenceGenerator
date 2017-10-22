@@ -1,7 +1,6 @@
 package story;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -31,8 +30,8 @@ public class Pos {
 	//<a href="">en-dep/xcomp</a> (2502; 10% instances)
 	/**map to lines such as "<a href="">en-pos/VERB</a>-<a href="">en-pos/PROPN</a> (1372; 8% instances)"
 	 used for constructing maps for a DepType. These lines are curated data. Keys are names*/
-	private static final Map<String, String> parentPosTypeDataMap;
-	private static final Map<String, String> childPosTypeDataMap;
+	//private static final Map<String, String> parentPosTypeDataMap;
+	//private static final Map<String, String> childPosTypeDataMap;
 	private static final Random RAND_GEN = new Random();
 	private static final int TOTAL_PROB_1000 = 1000;
 	private static final int TOTAL_PROB_100 = 100;
@@ -69,11 +68,17 @@ public class Pos {
 	
 	/**phrase created from subtree*/
 	private String subTreePhrase;
+	//same content as subTreePhrase, but as disparate words
+	private List<String> subTreeWordsList = new ArrayList<String>();
+	
+	/**list of pos for subtree terms, ordered according to the ordering of 
+	 * are ordered*/
+	private List<PosType> subTreePosList = new ArrayList<PosType>();
 	
 	static {
 		//construct depTypeDataMap by reading data from file
-		parentPosTypeDataMap = new HashMap<String, String>();
-		childPosTypeDataMap = new HashMap<String, String>();
+		//parentPosTypeDataMap = new HashMap<String, String>();
+		//childPosTypeDataMap = new HashMap<String, String>();
 		
 		parentDepTypePairListMap = new HashMap<PosTypeName, List<DepTypeProbPair>>();
 		//create map		
@@ -273,11 +278,12 @@ public class Pos {
 			List<DepType> dTList = new ArrayList<DepType>();			
 			
 			int numDepType;
-			if(posCount > MAX_POS_COUNT) {
+			if(posCount > MAX_POS_COUNT || posType.posTypeName() == PosTypeName.NONE) {
 				numDepType = 0;
 			}else if(posParentChildType == PosPCType.CHILD) {
 				numDepType = 1;
-			}else {
+			}
+			else {
 				// PCProbMap goes from 0 to 100. 
 				int randInt = RAND_GEN.nextInt(TOTAL_PROB_100)+1;
 				//generate based on stats
@@ -705,6 +711,8 @@ public class Pos {
 		}		
 		if(this.childDepList.isEmpty()) {
 			//leaf Pos
+			this.subTreePosList.add(this.posType());
+			this.subTreeWordsList.add(this.posWord);
 			return this.posWord;
 		}
 		
@@ -732,6 +740,10 @@ public class Pos {
 				} 
 		);
 		
+		//List<PosType> subTreePosList = new ArrayList<PosType>();
+		this.subTreePosList.add(this.posType());
+		this.subTreeWordsList.add(this.posWord);
+		
 		StringBuilder rightSb = new StringBuilder(30);
 		StringBuilder leftSb = new StringBuilder(30);
 
@@ -745,19 +757,37 @@ public class Pos {
 			int randInt = RAND_GEN.nextInt(TOTAL_PROB_100 + 1);
 			Pos childPos = dep.childPos();
 			if(childPos == this){
-				throw new IllegalArgumentException("child pos equal to this!");
+				throw new IllegalArgumentException("child pos equal to this pos!");
 			}
 			String childPosStr = childPos.createSubTreePhrase();
+			//null if leaf node
+			List<PosType> childTreeList = childPos.subTreePosList();
 			
 			if(randInt < parentFirstProb){
 				//depList already sorted
 				//rightDepList.add(childPosStr);
 				rightSb.append(childPosStr).append(" ");
+				
+				if(null == childTreeList) {
+					this.subTreePosList.add(childPos.posType());
+				}else {
+					this.subTreePosList.addAll(childPos.subTreePosList());
+				}
+				this.subTreeWordsList.addAll(childPos.subTreeWordsList);
 			}else{
 				//leftDepList.add(0, childPosStr);
 				leftSb.insert(0, " ").insert(0, childPosStr);
+				
+				if(null == childTreeList) {
+					this.subTreePosList.add(0, childPos.posType());
+				}else {
+					this.subTreePosList.addAll(0, childPos.subTreePosList());
+				}	
+				this.subTreeWordsList.addAll(0, childPos.subTreeWordsList);
 			}			
-		}		
+		}	
+		
+		//this.subTreePosList = subTreePosList;
 		this.subTreePhrase = leftSb.toString() + this.posWord + " " + rightSb.toString();
 		return this.subTreePhrase;		
 	}
@@ -816,6 +846,18 @@ public class Pos {
 	
 	public PosType posType() {
 		return this.posType;
+	}
+	
+	public List<PosType> subTreePosList(){
+		return this.subTreePosList;
+	}
+	
+	public List<String> subTreeWordsList(){
+		return this.subTreeWordsList;
+	}
+	
+	public String subTreePhrase() {
+		return this.subTreePhrase;
 	}
 	
 	public String toString(){

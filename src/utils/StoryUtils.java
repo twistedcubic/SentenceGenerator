@@ -179,6 +179,14 @@ public class StoryUtils {
 	 * on website, show relation and pos to explain
 	 * they 's
 	 * -shouldn't end in PRON e.g. "we"
+	 * -substitute into proper pronouns, e.g. "I apple" to "my apple"
+	 * -take into account multiple pos, e.g. "play"
 	 * 
+	 * Interesting samples:
+	 * all arithmetic docudrama lock  that definable wheat 
+
+"any reassuring baccy  has quitclaim"
+"Enron is respecting river"
+oh you can imprint mansard 
 	 */
 }

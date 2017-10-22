@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Multimap;
 
 import story.Pos.PosType;
 import story.Pos.PosType.PosTypeName;
@@ -83,6 +82,11 @@ public class Dep {
 		depTypeNameConvertMap.put("nmod:npmod", "nmodnpmod");
 		depTypeNameConvertMap.put("nmod:poss", "nmodposs");
 		depTypeNameConvertMap.put("nmod:tmod", "nmodtmod");
+		depTypeNameConvertMap.put("nsubj:pass", "nsubjpass");
+		depTypeNameConvertMap.put("csubj:pass", "csubjpass");
+		depTypeNameConvertMap.put("aux:pass", "auxpass");
+		depTypeNameConvertMap.put("flat:foreign", "foreign");
+		depTypeNameConvertMap.put("dobj", "obj");
 		
 		for(Map.Entry<String, String> entry : depTypeNameConvertMap.entrySet()){
 			depTypeNameConvertReverseMap.put(entry.getValue(), entry.getKey());
@@ -141,6 +145,7 @@ public class Dep {
 		cop("cop"),
 		csubj("csubj"),
 		csubjpass("csubjpass"),
+		nsubjpass("nsubjpass"),
 		dep("dep"),
 		detpredet("detpredet"),
 		det("det"),
@@ -160,7 +165,7 @@ public class Dep {
 		nmod("nmod"),		
 		nsubj("nsubj"),
 		nummod("nummod"),
-		dobj("dobj"),
+		obj("obj"),
 		orphan("orphan"),
 		parataxis("parataxis"),
 		punct("punct"),
