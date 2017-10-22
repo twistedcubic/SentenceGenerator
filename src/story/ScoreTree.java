@@ -27,10 +27,14 @@ public class ScoreTree {
 		addToPosTypeScoreMap(PosType.ADJ, PosType.NONE, 0.85);
 		//".. he"
 		addToPosTypeScoreMap(PosType.PRON, PosType.NONE, 0.8);
+		//".. some"
+		addToPosTypeScoreMap(PosType.DET, PosType.NONE, 0.85);
 		
 		/**starting tokens**/
 		addToPosTypeScoreMap(PosType.NONE, PosType.ADJ, 0.92);
 		//addToPosTypeScoreMap(PosType.NONE, PosType.ADP, 0.92);
+		//"to tree", "of tree"
+		addToPosTypeScoreMap(PosType.NONE, PosType.ADP, 0.95);
 		
 		/**tokens in middle*/
 		//"can aboard"
@@ -56,6 +60,8 @@ public class ScoreTree {
 		//"sucessfully he"
 		addToPosTypeScoreMap(PosType.ADV, PosType.PRON, 0.95);
 
+		//"Iran five"
+		addToPosTypeScoreMap(PosType.PROPN, PosType.NUM, 0.85);
 		addToPosTypeScoreMap(PosType.PROPN, PosType.DET, 0.82);
 		//"I apple"
 		addToPosTypeScoreMap(PosType.PROPN, PosType.NOUN, 0.7);
@@ -82,6 +88,8 @@ public class ScoreTree {
 		//explicitly allow adj-adj pair without resorting to default score
 		addToPosTypeScoreMap(PosType.ADJ, PosType.ADJ, 1.);
 		
+		//"she high"
+		addToPosTypeScoreMap(PosType.PRON, PosType.ADJ, 0.89);
 		//e.g. "she a"
 		addToPosTypeScoreMap(PosType.PRON, PosType.DET, 0.82);
 		//"me apple"
