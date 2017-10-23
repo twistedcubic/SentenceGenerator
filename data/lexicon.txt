@@ -23279,7 +23279,6 @@ flak noun
 flake noun
 flakiness noun
 flamboyance noun
-flamboyant noun
 flame noun
 flamenco noun
 flamethrower noun

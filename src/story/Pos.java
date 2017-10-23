@@ -726,6 +726,7 @@ public class Pos {
 						double dep1Dist = dep1.depType().parentChildDist();
 						double dep2Dist = dep2.depType().parentChildDist();
 						int comp = dep1Dist > dep2Dist ? 1 : (dep1Dist < dep2Dist ? -1 : 0);
+						
 						//introduce some randomness if distance difference is small.
 						//but this makes the compare non-transitive and non-symmetric!!
 						double diff;
@@ -769,7 +770,7 @@ public class Pos {
 				//depList already sorted
 				//rightDepList.add(childPosStr);
 				rightSb.append(childPosStr).append(" ");
-				
+				//null if leaf node
 				if(null == childTreeList) {
 					this.subTreePosList.add(childPos.posType());
 				}else {

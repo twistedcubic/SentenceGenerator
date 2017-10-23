@@ -18,6 +18,7 @@ import com.google.common.collect.SetMultimap;
 
 import story.Pos.PosType;
 import story.Pos.PosType.PosTypeName;
+import utils.ExtraLexicon;
 import utils.StoryUtils;
 import utils.StoryUtils.SearchableList;
 
@@ -227,9 +228,23 @@ public class Story {
 	
 	public static String getRandomWord(PosType posType) {
 		
-		List<String> posTypeWordList = Story.POS_WORD_MAP().get(posType.posTypeName());
-		if(null == posTypeWordList || posTypeWordList.isEmpty()) {
-			System.out.println("Story - no vocab word for PosType " + posType.posTypeName());
+		PosTypeName posTypeName = posType.posTypeName();
+		
+		List<String> posTypeWordList = null;
+		int randInt = RAND_GEN.nextInt(100);
+		
+		if(randInt < 85) {
+		//if(posTypeName == PosTypeName.NOUN || posTypeName == PosTypeName.VERB) {
+			posTypeWordList = ExtraLexicon.commonPosWordListMultimap().get(posTypeName);		
+		}
+		
+		if(null == posTypeWordList || posTypeWordList.isEmpty()){
+			posTypeWordList = Story.POS_WORD_MAP().get(posTypeName);
+		}
+		
+		//List<String> posTypeWordList = Story.POS_WORD_MAP().get(posTypeName);
+		if(posTypeWordList.isEmpty()) {
+			System.out.println("Story - no vocab word for PosType " + posTypeName);
 			return PLACEHOLDER_WORD;
 		}
 		int posTypeWordListSz = posTypeWordList.size();

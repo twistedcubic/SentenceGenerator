@@ -6,7 +6,6 @@ import java.util.Scanner;
 import java.util.TreeMap;
 
 import story.Pos.PosType;
-import story.Pos.PosType.PosTypeName;
 import utils.StoryUtils;
 
 /**
@@ -90,6 +89,7 @@ public class TellStory {
 					continue;
 				}
 				System.out.println("current sentence: " + sentence);
+				System.out.println("posTypeList: " + originPos.subTreePosList());
 				System.out.println("score: " + score);
 				
 				System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");

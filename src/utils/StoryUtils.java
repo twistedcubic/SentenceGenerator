@@ -181,6 +181,7 @@ public class StoryUtils {
 	 * -shouldn't end in PRON e.g. "we"
 	 * -substitute into proper pronouns, e.g. "I apple" to "my apple"
 	 * -take into account multiple pos, e.g. "play"
+	 * -http://visjs.org/docs/network/
 	 * 
 	 * Interesting samples:
 	 * all arithmetic docudrama lock  that definable wheat 
@@ -188,5 +189,7 @@ public class StoryUtils {
 "any reassuring baccy  has quitclaim"
 "Enron is respecting river"
 oh you can imprint mansard 
+will reasonable not perjure razzmatazz ?
+
 	 */
 }
