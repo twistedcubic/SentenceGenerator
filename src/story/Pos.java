@@ -22,7 +22,7 @@ import utils.StoryUtils.SearchableList;
 
 /**
  * part of speech.
- * @author yihed
+ * @author yihe
  *
  */
 public class Pos {
@@ -88,7 +88,6 @@ public class Pos {
 		String fileStr = "data/posStats.txt";
 		createPosStatsMap(fileStr, parentDepTypePairListMap, childDepTypePairListMap, rootProbMap);
 		
-		//check parent child formts are same! <-- yep
 		
 		String[][] incompatiblePairsAr = new String[][] {
 			//e.g. "any for baron"
