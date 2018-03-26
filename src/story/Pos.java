@@ -17,6 +17,7 @@ import com.google.common.collect.HashMultimap;
 import story.Dep.DepType;
 import story.Pos.PosType.PosTypeName;
 import story.Story.PosPCType;
+import utils.ExtraLexicon;
 import utils.StoryUtils;
 import utils.StoryUtils.SearchableList;
 
@@ -52,6 +53,7 @@ public class Pos {
 	private static final Map<PosTypeName, List<DepTypeProbPair>> parentDepTypePairListMap;
 	private static final Map<PosTypeName, List<DepTypeProbPair>> childDepTypePairListMap;	
 	private static final Map<PosTypeName, Integer> rootProbMap;
+	private static final PosType defaultPosType = PosType.VERB;
 	
 	private PosType posType;
 	
@@ -502,19 +504,46 @@ public class Pos {
 	/**
 	 * create sentence tree given a PosType. Returns
 	 * that supplied entry pos, *not* root of tree.
+	 * @assume that posTypeWord is of PosType posType.
 	 * @param posType
+	 * @param posTypeWord A word of PosType posType
 	 */
-	public static Pos createSentenceTree(PosType posType) {
+	public static Pos createSentenceTree(PosType posType, String posTypeWord) {
 
 		//create a pos with that Type
 		Pos pos = new Pos(posType);
-		pos.posWord = Story.getRandomWord(posType);
+		pos.posWord = posTypeWord;
 		System.out.println("originPos word: "+pos.posWord);
 		int countSoFar = 1;
 		growTree(pos, countSoFar);
 		return pos;
 	}
+	
+	/**
+	 * create sentence tree given a PosType. Returns
+	 * that supplied entry pos, *not* root of tree.
+	 * @param posType
+	 */
+	public static Pos createSentenceTree(PosType posType) {
+		if(null == posType) {
+			posType = defaultPosType;
+		}
+		String word = Story.getRandomWord(posType);
+		return createSentenceTree(posType, word);
+	}
 
+	/**
+	 * create sentence tree given a word. Returns
+	 * that supplied entry pos, *not* root of tree.
+	 * @param word
+	 */
+	public static Pos createSentenceTree(String word) {
+		
+		PosTypeName posTypeName = ExtraLexicon.wordPosTypeNameMap().get(word);
+		PosType posType = posTypeName == null ? defaultPosType : posTypeName.getPosType();
+		
+		return createSentenceTree(posType, word);
+	}
 	/**
 	 * Attach additional Dep and Pos to given Pos.
 	 * @param pos

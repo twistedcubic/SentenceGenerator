@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Build the thm parse project -->
+
+<project name="crossword" basedir=".">
+	<!-- source directory, i.e. Other/ -->
+
+	<property name="builddir" value="${basedir}/build/" />
+	<property name="srcdir" value="${basedir}/src/crossword/"/>
+		
+	<!-- main lib containing jar such as JLink, Guava etc -->
+	<property name="libdir" value="${basedir}/lib/" />
+	<!--<property name="server_libdir" value="/Users/administrator/Documents/workspaceEE/crossword/WebContent/WEB-INF/lib" />-->
+	<property name="server_libdir" value="/Users/yihed/Documents/workspaceEE/crosswordservlet/WebContent/WEB-INF/lib" />
+
+	<!-- lib containing jars such as thmSearch, thmUtils etc-->
+	<property name="crossword_jarname" value="crossword.jar" />
+
+	<target name="clean" description="clean">
+		<delete failonerror="false" file="${basedir}/${crossword_jarname}" />
+	</target>
+
+	<target name="compileCrossword" description="compile Java sources">
+		<delete dir="${builddir}"/>
+		<mkdir dir="${builddir}" />
+		<javac destdir="${builddir}" debug="true" includeantruntime="false"> 
+			<src path="${srcdir}"/>			
+			<classpath>
+				<fileset dir="${libdir}">
+					<include name="**/*.jar" />
+				</fileset>
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="buildjar" description="build jar file">
+		<jar destfile="${basedir}/${crossword_jarname}" basedir="${builddir}">
+			<manifest>
+				<attribute name="Main-Class" value="src/thmp/Crossword" />
+			</manifest>
+			<exclude name="**/*.jar" />
+		</jar>
+	</target>
+
+	<target name="copyJarToServlet">			
+			<copy todir="${server_libdir}">				
+				<fileset dir="${basedir}">
+						<include name="${crossword_jarname}" />
+				</fileset>
+			</copy>	
+			
+		</target>
+	
+	<target name="copyJarsToThmpServlet">
+		<copy todir="${server_datadir}">
+			<fileset dir="${datadir}">
+				<include name="lexicon.txt" />
+			</fileset>
+		</copy>
+		<copy todir="${server_libdir}">				
+			<fileset dir="${basedir}">
+					<include name="${thmParse_jarname}" />
+			</fileset>
+		</copy>	
+		<copy todir="${server_srcdir}">
+			<fileset dir="${basedir}/src">
+				<include name="kernelSearchInitializer.m" />
+			</fileset>
+		</copy>	
+	</target>
+
+	<target name="timestamp">
+	  <tstamp>
+	    <format property="current.time" pattern="MM/dd/yyyy hh:mm:ss aa" />
+	  </tstamp>
+	  <echo message="${message} ${current.time}" />      
+	</target>
+	
+	<target name="run" description="run the build process">
+		<antcall target="clean" />
+		<antcall target="compileCrossword" />
+
+		<antcall target="buildjar" />
+		<antcall target="copyJarToServlet"/>
+		<!--<antcall target="copyJarsToThmpServlet" />-->
+		<antcall target="timestamp">
+		    <param name="message" value="Finished building!" />
+		</antcall>
+	</target>
+
+</project>

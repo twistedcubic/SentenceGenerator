@@ -1,6 +1,8 @@
 package utils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
@@ -17,17 +19,20 @@ import story.Pos.PosType.PosTypeName;
 public class ExtraLexicon {
 
 	private static final ListMultimap<PosTypeName, String> commonPosWordListMultimap;
+	private static final Map<String, PosTypeName> wordPosTypeNameMap;
 	
 	static {
 		//map of postype and words of that type.
 		commonPosWordListMultimap = ArrayListMultimap.create();
+		wordPosTypeNameMap = new HashMap<String, PosTypeName>();
 		String wordFreqFileStr = "data/wordFrequency.txt";
-		getStockFreq(wordFreqFileStr, commonPosWordListMultimap);
+		getStockFreq(wordFreqFileStr, commonPosWordListMultimap, wordPosTypeNameMap);
 		
 	}
 	
 	private static void getStockFreq(String wordFreqFileStr,
-			ListMultimap<PosTypeName, String> commonPosWordMultimap) {
+			ListMultimap<PosTypeName, String> commonPosWordMultimap, 
+			Map<String, PosTypeName> wordPosTypeNameMap) {
 		
 		List<String> lines = StoryUtils.readLinesFromFile(wordFreqFileStr);
 		
@@ -41,11 +46,12 @@ public class ExtraLexicon {
 			if(wordPosTypeName == PosTypeName.NONE) {
 				continue;
 			}
-			commonPosWordMultimap.put(wordPosTypeName, word);				
-			//int wordFreq = Integer.valueOf(lineAr[3].trim());					
-			//stockFreqMap.put(word, wordFreq);
-		}
-		
+			commonPosWordMultimap.put(wordPosTypeName, word);	
+			//only get the most likely one, which appears first.
+			if(!wordPosTypeNameMap.containsKey(word)) {
+				wordPosTypeNameMap.put(word, wordPosTypeName);
+			}
+		}		
 	}
 	
 	/**
@@ -144,6 +150,14 @@ public class ExtraLexicon {
 	
 	public static ListMultimap<PosTypeName, String> commonPosWordListMultimap() {
 		return commonPosWordListMultimap;
+	}
+	
+	/**
+	 * Retrieve map of common words and their most likely PosTypeName.
+	 * @return
+	 */
+	public static Map<String, PosTypeName> wordPosTypeNameMap(){
+		return wordPosTypeNameMap;
 	}
 	
 }

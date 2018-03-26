@@ -45,6 +45,7 @@ public class Story {
 	private static final Pattern PC_TYPE_PATTERN = Pattern.compile("<p>.+\\((\\d+)%\\)\\s*<code>(.+)</code> nodes (.+)");
 	private static final String PLACEHOLDER_WORD = "PC";
 	private static final Pattern LAST_TOK_PATT = Pattern.compile("\\s+(?=([^\\s]+$))");
+	private static final boolean DEBUG = true;
 	
 	//private static final int TOTAL_PROB = 100;
 	
@@ -272,6 +273,76 @@ public class Story {
 		return wordPosTypeMap;
 	}
 	
+	/**
+	 * Create sentence from given posType and/or word. If both non-null,
+	 * they are assumed to be consistent.
+	 * @param posType
+	 * @param posTypeWord Word of that posType
+	 * @return
+	 */
+	public static String createSentence(PosType posType, String posTypeWord) {
+		//treemap to keep track of scores of various pos.
+		TreeMap<Double, Pos> scorePosTMap = new TreeMap<Double, Pos>();
+		//List<String> posStringList = new ArrayList<String>();
+		double topScore = 0.;
+		
+		int maxIter = 10;
+		while(--maxIter > 0 || scorePosTMap.isEmpty() || topScore < 0.9) {
+			//PosType posType = PosType.VERB;
+			//origin of tree, the supplied entry point, *not* root
+			Pos originPos;
+			if(null != posType && null != posTypeWord){
+				originPos = Pos.createSentenceTree(posType, posTypeWord);
+			}else if(null != posTypeWord) {
+				originPos = Pos.createSentenceTree(posTypeWord);
+			}else {
+				originPos = Pos.createSentenceTree(posType);
+			}
+			
+			double initialScore = ScoreTree.MAX_TREE_SCORE;
+			
+			if(!Pos.treeContainsVerb(originPos)) {
+				if(DEBUG) System.out.println("~~~~~~~ ++++ NO VERB ++++ ");
+				continue;				
+			}
+			//arrange tree into a sentence based on 
+			String sentence = Pos.arrangePosStr(originPos);
+			double score = ScoreTree.computeTreeScore(originPos, initialScore);
+			topScore = score > topScore ? score : topScore;
+			
+			if(DEBUG) {
+				System.out.println("current sentence: " + sentence);
+				System.out.println("score: " + score);				
+				System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");
+			}
+			
+			scorePosTMap.put(score, originPos);
+		}
+		
+		/**
+		 * if(!Pos.treeContainsVerb(originPos)) {
+				if(--maxIter < 0) {
+					break;
+				}
+				System.out.println("*** Trying again to find a verb!");
+				originPos = Pos.createSentenceTree(posType);
+			}
+		 */
+		
+		Map.Entry<Double, Pos> mapEntry = scorePosTMap.floorEntry(ScoreTree.MAX_TREE_SCORE);
+		Pos winningRootPos = mapEntry.getValue();
+		String sentence = winningRootPos.subTreePhrase();
+		List<PosType> posTypeList = winningRootPos.subTreePosList();
+		//e.g. "is verboten divine "
+		if(posTypeList.get(0) == PosType.AUX) {
+			sentence += "?";
+		}
+		System.out.println("posTypeList: " + posTypeList);
+		System.out.println("score: " + mapEntry.getKey());
+		
+		return sentence;
+	}
+	
 	//create story, connecting input words and prob
 	public static void main(String[] args) {
 		//guess pos for the input words using pos tagger, 
@@ -293,57 +364,9 @@ public class Story {
 				continue;
 			}
 			
-			//treemap to keep track of scores of various pos.
-			TreeMap<Double, Pos> scorePosTMap = new TreeMap<Double, Pos>();
-			//List<String> posStringList = new ArrayList<String>();
-			double topScore = 0.;
-			
-			int maxIter = 10;
-			while(--maxIter > 0 || scorePosTMap.isEmpty() || topScore < 0.9) {	
-				//PosType posType = PosType.VERB;
-				//origin of tree, the supplied entry point, *not* root
-				Pos originPos = Pos.createSentenceTree(posType);
-				double initialScore = ScoreTree.MAX_TREE_SCORE;
-				
-				if(!Pos.treeContainsVerb(originPos)) {
-					System.out.println("~~~~~~~ ++++ NO VERB ++++ ");
-					continue;
-					//initialScore = .6;					
-					//System.out.println("*** Trying again to find a verb!");					
-				}
-				//arrange tree into a sentence based on 		
-				String sentence = Pos.arrangePosStr(originPos);
-				double score = ScoreTree.computeTreeScore(originPos, initialScore);
-				topScore = score > topScore ? score : topScore;
-				
-				System.out.println("current sentence: " + sentence);
-				System.out.println("score: " + score);
-				
-				System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");
-				scorePosTMap.put(score, originPos);
-			}
-			/**
-			 * if(!Pos.treeContainsVerb(originPos)) {
-					if(--maxIter < 0) {
-						break;
-					}
-					System.out.println("*** Trying again to find a verb!");
-					originPos = Pos.createSentenceTree(posType);
-				}
-			 */
-			
-			Map.Entry<Double, Pos> mapEntry = scorePosTMap.floorEntry(ScoreTree.MAX_TREE_SCORE);
-			Pos winningRootPos = mapEntry.getValue();
-			String sentence = winningRootPos.subTreePhrase();
-			List<PosType> posTypeList = winningRootPos.subTreePosList();
-			//e.g. "is verboten divine "
-			if(posTypeList.get(0) == PosType.AUX) {
-				sentence += "?";
-			}
-			
+			String sentence = createSentence(posType, null);
 			System.out.println("top sentence: " + sentence);
-			System.out.println("posTypeList: " + posTypeList);
-			System.out.println("score: " + mapEntry.getKey());
+			
 			System.out.println(" ~~~~~~~~~~~~~~~~~~~~~~ ");
 		}
 		sc.close();
