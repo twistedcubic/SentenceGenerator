@@ -9,8 +9,8 @@
 		
 	<!-- main lib containing jar such as JLink, Guava etc -->
 	<property name="libdir" value="${basedir}/../lib/" />
-	<!--<property name="server_libdir" value="/Users/administrator/Documents/workspaceEE/crossword/WebContent/WEB-INF/lib" />-->
-	<property name="server_libdir" value="/Users/yihed/Documents/workspaceEE/StoryServlet/WebContent/WEB-INF/lib" />
+	<property name="server_libdir" value="/Users/administrator/Documents/workspaceEE/story/WebContent/WEB-INF/lib" />
+	<!--<property name="server_libdir" value="/Users/yihed/Documents/workspaceEE/StoryServlet/WebContent/WEB-INF/lib" />-->
 	
 	<!-- lib containing jars such as thmSearch, thmUtils etc-->
 	<property name="story_jarname" value="story.jar" />
